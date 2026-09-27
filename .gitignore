@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+build/
+dist/
+# research outputs / local data - never commit market data dumps or credentials
+output/
+data/raw/
+*.parquet
+*.jsonl
+.env

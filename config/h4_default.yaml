@@ -1,0 +1,307 @@
+# GBPJPY H4 Market Intelligence Engine - Phase 1A baseline configuration.
+#
+# Baseline, defensible defaults. NOT optimised. Every key is documented below.
+# Load with gbpjpy_engine.load_config('config/h4_default.yaml'); omitted keys fall back to defaults.
+
+
+data:
+  # Instrument identifier. The engine is dedicated to GBPJPY.
+  symbol: "GBPJPY"
+  # Bar duration in minutes (H4 = 240). Bar timestamps are bar OPEN times.
+  timeframe_minutes: 240
+  # Price value of one pip for a JPY-quoted pair.
+  pip_size: 0.01
+  # Largest gap between consecutive bar opens that is treated as a normal weekend closure (only when the
+  # gap spans a Saturday). Longer gaps are flagged as missing bars.
+  max_weekend_gap_hours: 72.0
+  # An open-vs-previous-close gap larger than this multiple of the trailing median bar range is flagged
+  # ABNORMAL_PRICE_GAP (flagged, never repaired).
+  abnormal_gap_range_mult: 2.0
+  # Trailing bars used for the median-range reference in gap detection.
+  gap_reference_window: 50
+
+engine:
+  # Bars required before outputs are considered fully formed (EMA200 + percentile history). Before this,
+  # regime=UNCLEAR and bias=NEUTRAL with reason INSUFFICIENT_HISTORY.
+  warmup_bars: 250
+  # Raise DataIntegrityError when ERROR-severity data issues exist (duplicates, out-of-order, invalid
+  # OHLC, non-positive prices, naive timestamps). Data is never silently repaired.
+  fail_on_data_errors: true
+
+swing:
+  # Bars to the LEFT of a pivot that must be strictly lower (high pivot) / higher (low pivot).
+  left_bars: 3
+  # Bars to the RIGHT required to confirm a pivot. A pivot at bar i only becomes known at the CLOSE of
+  # bar i+right_bars; that is its availability timestamp.
+  right_bars: 3
+  # Minimum distance (in ATR at confirmation time) from the previous opposite swing for a new swing to
+  # be accepted. Filters candle noise out of the structural swing sequence.
+  min_swing_atr: 1.0
+  # Swings within this many ATR of the previous same-type swing are labelled equal (EH/EL) rather than
+  # higher/lower.
+  equal_level_atr: 0.1
+
+structure:
+  # A structural break requires the candle CLOSE to be beyond the swing level by at least this many ATR.
+  # Wick-only or tiny closes are not structural breaks.
+  break_min_atr: 0.25
+  # Bars after a break during which every close must hold beyond the level for the break to become
+  # 'confirmed'. A close back through the level in this window marks it 'rejected'.
+  break_confirm_bars: 2
+  # How long (bars) a non-rejected counter-structure break (CHoCH) keeps the structure state
+  # 'transitional' unless the swing sequence re-establishes a clear direction first.
+  transition_memory_bars: 30
+  # Number of most recent confirmed swings used for structure-quality measures.
+  quality_swings: 8
+  # Trailing bars used for break-conflict, reversal-frequency and persistence measures.
+  quality_window_bars: 60
+
+trend:
+  # Fast EMA period.
+  ema_fast: 20
+  # Medium EMA period; also the trend baseline for crossings and flatness.
+  ema_mid: 50
+  # Slow EMA period (long-term context).
+  ema_slow: 200
+  # Bars over which EMA slopes are measured.
+  slope_lookback: 5
+  # EMA slope (ATR per bar) that maps to ~76% of maximum slope contribution (tanh scaling).
+  slope_norm_atr_per_bar: 0.08
+  # EMA20-EMA50 separation (ATR) that maps to ~76% of maximum separation contribution.
+  separation_norm_atr: 1.5
+  # Price-to-EMA50 distance (ATR) that maps to ~76% of maximum distance contribution.
+  distance_norm_atr: 2.0
+  # Bars over which EMA20-vs-EMA50 alignment persistence is averaged.
+  persistence_window: 30
+  # Absolute trend score (0-100) required for a bullish/bearish trend state.
+  trend_threshold: 30.0
+  # Absolute trend score required for a strong trend state.
+  strong_threshold: 60.0
+
+adx:
+  # Wilder ADX / DI period.
+  period: 14
+  # Bars over which ADX slope is measured.
+  slope_lookback: 3
+  # Bars over which DI dominance persistence is averaged.
+  persistence_window: 20
+  # ADX below this is treated as non-directional context.
+  weak_adx: 18.0
+  # ADX above this is treated as a directional environment (context only, never a signal).
+  strong_adx: 25.0
+
+volatility:
+  # Primary ATR period (Wilder).
+  atr_period: 14
+  # Short ATR for expansion/contraction measurement.
+  atr_short_period: 5
+  # Long ATR for expansion/contraction measurement.
+  atr_long_period: 50
+  # Trailing bars (~4 months of H4) for ATR% percentile ranking.
+  percentile_lookback: 500
+  # Minimum history before an ATR percentile is reported.
+  percentile_min_periods: 100
+  # ATR percentile at/below which volatility is 'very_low'.
+  very_low_pct: 10.0
+  # ATR percentile at/below which volatility is 'low'.
+  low_pct: 30.0
+  # ATR percentile at/above which volatility is 'high'.
+  high_pct: 70.0
+  # ATR percentile at/above which volatility is 'extreme'.
+  extreme_pct: 92.0
+  # Short/long ATR ratio at/above which volatility is 'expanding'.
+  expansion_ratio: 1.2
+  # Short/long ATR ratio at/below which volatility is 'contracting'.
+  contraction_ratio: 0.8
+
+shock:
+  # Bar range / previous ATR at which range-shock severity starts above 0.
+  range_atr_start: 2.0
+  # Bar range / previous ATR at which range-shock severity reaches 100.
+  range_atr_extreme: 5.0
+  # |open - previous close| / previous ATR at which gap severity starts.
+  gap_atr_start: 0.5
+  # Gap / previous ATR at which gap severity reaches 100.
+  gap_atr_extreme: 3.0
+  # Largest wick / previous ATR at which wick severity starts.
+  wick_atr_start: 1.2
+  # Largest wick / previous ATR at which wick severity reaches 100.
+  wick_atr_extreme: 3.5
+  # |close - previous close| / previous ATR at which displacement severity starts.
+  displacement_atr_start: 1.5
+  # Close-to-close displacement / previous ATR at which severity reaches 100.
+  displacement_atr_extreme: 4.0
+  # Short/long ATR ratio at which ATR-expansion severity starts.
+  expansion_ratio_start: 1.4
+  # Short/long ATR ratio at which ATR-expansion severity reaches 100.
+  expansion_ratio_extreme: 2.6
+  # shock_severity at/above which volatility_shock=True.
+  shock_threshold: 50.0
+
+momentum:
+  # Return lookbacks (bars) for ATR-and-sqrt(n)-normalised rate of change.
+  roc_periods: [3, 6, 12]
+  # Normalised ROC that maps to ~76% of maximum ROC contribution (tanh scaling).
+  roc_norm: 1.0
+  # Bars over which impulse velocity (ATR per bar) is measured.
+  velocity_window: 6
+  # Velocity (ATR/bar) mapping to ~76% of maximum velocity contribution.
+  velocity_norm: 0.25
+  # Bars over which signed body/range ratios are averaged.
+  body_window: 6
+  # Consecutive same-direction closes counted up to this cap.
+  consecutive_cap: 5
+  # Trailing bars for the percentile of current momentum vs historical momentum.
+  history_lookback: 500
+  # Bars over which net momentum change is measured for acceleration state.
+  accel_lookback: 3
+  # Net-momentum change (points) required to call accelerating/decelerating.
+  accel_threshold: 10.0
+  # |net momentum| below which momentum is 'flat'.
+  flat_threshold: 10.0
+
+candle:
+  # Body/range at/above which a close may be 'strong directional'.
+  strong_body_ratio: 0.6
+  # Close location (0=low,1=high) required for a strong bullish close (mirrored for bearish).
+  strong_close_location: 0.75
+  # Single wick/range at/above which a candle may be a 'rejection'.
+  rejection_wick_ratio: 0.5
+  # Maximum body/range for a rejection candle.
+  rejection_max_body: 0.35
+  # Body/range at/below which a candle is 'indecision'.
+  indecision_body_ratio: 0.2
+  # Range / previous ATR at/above which a candle is 'abnormal expansion'.
+  abnormal_range_atr: 2.0
+
+chop:
+  # Trailing bars for overlap, baseline-crossing and displacement measures.
+  window: 20
+  # Choppiness Index period.
+  choppiness_period: 14
+  # EMA50 slope (ATR/bar) at/above which the baseline is no longer considered flat.
+  flat_slope_atr_per_bar: 0.06
+  # EMA20-EMA50 separation (ATR) at/above which EMAs are not compressed.
+  compressed_separation_atr: 1.0
+  # chop_score at/above which market quality is 'severe_chop'.
+  severe_threshold: 72.0
+  # chop_score at/above which market quality is 'range'.
+  range_threshold: 55.0
+  # chop_score below which (with trend strength) quality is 'clean_trend'.
+  clean_threshold: 38.0
+  # Trend strength required for 'clean_trend'.
+  clean_trend_strength: 50.0
+  # Trend strength required for 'trend_with_noise'.
+  noisy_trend_strength: 30.0
+
+efficiency:
+  # Bars for directional efficiency: |net displacement| / sum(|bar-to-bar moves|).
+  lookback: 20
+  # Trailing bars for the efficiency percentile.
+  percentile_lookback: 500
+  # Minimum history before an efficiency percentile is reported.
+  percentile_min_periods: 100
+  # Efficiency below this raises LOW_DIRECTIONAL_EFFICIENCY.
+  low_efficiency: 0.2
+  # Efficiency at/above this raises HIGH_DIRECTIONAL_EFFICIENCY.
+  high_efficiency: 0.45
+
+levels:
+  # Only swings/breaks/touches within this many trailing bars contribute to zones.
+  lookback_bars: 300
+  # Level prices within this many ATR (current ATR) are clustered into one zone.
+  cluster_atr_mult: 0.5
+  # Minimum half-width of a zone in ATR.
+  min_half_width_atr: 0.1
+  # Recent range high/low lookback used as a level source.
+  range_extreme_lookback: 60
+  # Maximum zones retained (strongest first) to avoid meaningless line clutter.
+  max_zones: 12
+  # A zone within this many ATR of price counts as 'near'.
+  near_level_atr: 0.75
+  # level_strength_score at/above which a zone is 'strong'.
+  strong_level_score: 60.0
+
+round_numbers:
+  # JPY round-number intervals (1.00 = 100 pips, 0.50 = 50 pips). Context only.
+  intervals: [1.0, 0.5]
+  # Distance (pips) to the primary round number that raises NEAR_ROUND_NUMBER.
+  near_pips: 15.0
+
+range_location:
+  # Short lookback (bars) for range-location percentile (~3.3 trading days).
+  short: 20
+  # Medium lookback (bars) (~2 trading weeks).
+  medium: 60
+  # Long lookback (bars) (~6 trading weeks).
+  long: 180
+
+extension:
+  # Bars used to measure the recent impulse magnitude.
+  impulse_window: 10
+  # Trailing bars for the extension percentile.
+  percentile_lookback: 500
+  # Minimum history before an extension percentile is used.
+  percentile_min_periods: 100
+  # Composite EMA distance (ATR) that maps to an absolute sub-score of 100.
+  absolute_norm_atr: 3.0
+  # extension_score at/above which state is 'extended'.
+  extended_score: 65.0
+  # extension_score at/above which state is 'extremely_extended'.
+  extreme_score: 85.0
+
+sessions:
+  # Session definitions as (name, IANA timezone, local start, local end). DST is resolved per date via
+  # zoneinfo.
+  sessions:
+    - ["asia", "Asia/Tokyo", "09:00", "18:00"]
+    - ["london", "Europe/London", "08:00", "17:00"]
+    - ["new_york", "America/New_York", "08:00", "17:00"]
+  # Minutes a bar must overlap a session for that session to be counted as active.
+  min_overlap_minutes: 60
+
+regime:
+  # ADX required (with aligned structure/trend) for STRONG trend regimes.
+  adx_trend_min: 20.0
+  # Maximum chop_score for STRONG trend regimes.
+  strong_max_chop: 45.0
+  # Minimum structure_quality_score for STRONG trend regimes.
+  strong_min_quality: 50.0
+  # Maximum chop_score for (non-weak) trend regimes.
+  trend_max_chop: 55.0
+  # Maximum chop_score for WEAK trend regimes.
+  weak_max_chop: 65.0
+  # Minimum chop_score for range regimes.
+  range_min_chop: 55.0
+  # ATR percentile at/above which a range is HIGH_VOLATILITY_RANGE.
+  high_vol_range_pct: 70.0
+  # ATR percentile at/below which LOW_VOLATILITY_COMPRESSION may be declared.
+  compression_pct: 20.0
+  # Short/long ATR ratio at/below which volatility is compressing.
+  compression_ratio: 0.9
+
+bias:
+  # Family weight: market structure.
+  structure_weight: 0.4
+  # Family weight: trend (EMA state + ADX/DI; correlated, so one family).
+  trend_weight: 0.35
+  # Family weight: momentum.
+  momentum_weight: 0.25
+  # Market-quality dampener: evidence *= 1 - chop_penalty * chop_score/100 (both sides).
+  chop_penalty: 0.4
+  # Volatility dampener applied to both sides when volatility is extreme.
+  extreme_vol_factor: 0.85
+  # Volatility dampener applied to both sides during a volatility shock.
+  shock_factor: 0.7
+  # Location penalty on the side of an 'extended' move.
+  extended_penalty: 0.1
+  # Location penalty on the side of an 'extremely_extended' move.
+  extreme_extension_penalty: 0.2
+  # Location penalty when price is near a strong opposing zone.
+  opposing_level_penalty: 0.1
+  # Dominant evidence score required before a directional bias is permitted.
+  min_evidence: 45.0
+  # Required |bullish - bearish| evidence separation for a directional bias.
+  min_separation: 20.0
+  # If BOTH evidence scores are at/above this, bias is NEUTRAL with BIAS_CONFLICT.
+  conflict_level: 35.0
