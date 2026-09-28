@@ -38,11 +38,13 @@ def explain(snap: H4Snapshot, max_zones: int = 6) -> str:
         "",
         f"STRUCTURE       {ms['state']} (swing sequence: {ms['swing_state']}; labels high={ms['last_high_label']} "
         f"low={ms['last_low_label']})   quality {_f(snap.structure_quality_score)}",
-        f"  last swing high {_f(ms['last_swing_high'], 3)} (pivot {ms['last_swing_high_time']}, confirmed {ms['last_swing_high_confirmed_at']})",
-        f"  last swing low  {_f(ms['last_swing_low'], 3)} (pivot {ms['last_swing_low_time']}, confirmed {ms['last_swing_low_confirmed_at']})",
+        f"  last swing high {_f(ms['last_swing_high'], 3)} (occurred {ms['last_swing_high_occurred_at']}, confirmed {ms['last_swing_high_confirmed_at']})",
+        f"  last swing low  {_f(ms['last_swing_low'], 3)} (occurred {ms['last_swing_low_occurred_at']}, confirmed {ms['last_swing_low_confirmed_at']})",
         f"  last break: {lb['type']} {lb['direction']} level {_f(lb['level'], 3)} at {lb['time']} "
-        f"magnitude {_f(lb['magnitude_atr'])} ATR, status {lb['status']}, "
+        f"magnitude {_f(lb['magnitude_atr'])} ATR, state {lb['status']} (prev {lb['previous_status']}: "
+        f"{lb['transition_reason']}), "
         f"{lb['structure_before']} -> {lb['structure_after']}, {_f(lb['bars_since'], 0)} bars ago",
+        f"  swing memory ({len(ms['swing_history'])} swings): {ms['swing_sequence']}",
         "",
         f"TREND           {snap.trend_state}  score {_f(snap.trend_score)}  strength {_f(snap.trend_strength)}",
         f"  ADX {_f(snap.adx)}  +DI {_f(snap.plus_di)}  -DI {_f(snap.minus_di)}  "

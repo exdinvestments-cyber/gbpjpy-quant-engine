@@ -8,7 +8,8 @@ Features are grouped into families.  Each directional family produces ONE
 bullish and ONE bearish sub-score in [0, 1]; correlated features inside a
 family are blended, never counted separately:
 
-  structure  (weight 0.40)  swing state x structure quality, recent BOS/CHoCH
+  structure  (weight 0.40)  swing state x structure quality, recent live BOS/CHoCH
+                            (INVALIDATED / FAILED breaks carry no evidence)
   trend      (weight 0.35)  trend_score (EMA order, slopes, price position,
                             separation, persistence) blended 80/20 with DI
                             spread scaled by ADX.  ADX/DI and EMAs are both
@@ -85,7 +86,7 @@ def family_scores(row: Mapping[str, Any], cfg: H4Config) -> dict[str, dict[str, 
     elif st == "bearish":
         s_bear = 0.5 + 0.5 * q
     bsb = _num(row, "bars_since_break")
-    recent_break = not math.isnan(bsb) and bsb <= cfg.structure.transition_memory_bars and row.get("last_break_status") != "rejected"
+    recent_break = not math.isnan(bsb) and bsb <= cfg.structure.transition_memory_bars and row.get("last_break_status") in ("CANDIDATE", "CONFIRMED", "ACCEPTED")
     if recent_break:
         bd = row.get("last_break_direction")
         if st == "transitional":
@@ -94,7 +95,7 @@ def family_scores(row: Mapping[str, Any], cfg: H4Config) -> dict[str, dict[str, 
                 s_bull = max(s_bull, 0.35)
             elif bd == "bearish":
                 s_bear = max(s_bear, 0.35)
-        elif row.get("last_break_type") == "BOS" and row.get("last_break_status") == "confirmed":
+        elif row.get("last_break_type") == "BOS" and row.get("last_break_status") in ("CONFIRMED", "ACCEPTED"):
             if bd == "bullish" and st == "bullish":
                 s_bull = min(1.0, s_bull + 0.1)
             elif bd == "bearish" and st == "bearish":

@@ -96,12 +96,12 @@ def test_bos_requires_meaningful_close_and_timing():
     assert b.magnitude == pytest.approx(106.40 - level)
     assert b.magnitude_atr == pytest.approx(0.35)
     assert b.closed_beyond
-    assert b.status == "confirmed"
-    assert b.status_history == [(n0 + 4, "pending"), (n0 + 6, "confirmed")]
+    assert b.status == "CONFIRMED"
+    assert b.status_history == [(n0 + 4, "CANDIDATE"), (n0 + 6, "CONFIRMED")]
     assert b.break_time == bars["timestamp"].iloc[n0 + 4]
     f = res.frame
-    assert f["last_break_status"].iloc[n0 + 4] == "pending"
-    assert f["last_break_status"].iloc[n0 + 6] == "confirmed"
+    assert f["last_break_status"].iloc[n0 + 4] == "CANDIDATE"
+    assert f["last_break_status"].iloc[n0 + 6] == "CONFIRMED"
     assert pd.isna(f["last_break_level"].iloc[n0 + 3]) or f["last_break_level"].iloc[n0 + 3] != pytest.approx(level)
 
 
@@ -112,10 +112,10 @@ def test_false_break_is_rejected():
     _, res = run(closes)
     b = [b for b in res.breaks if b.direction == "bullish"][-1]
     assert b.break_index == n0 + 2
-    assert b.status == "rejected"
-    assert b.status_history[-1] == (n0 + 3, "rejected")
-    assert res.frame["last_break_status"].iloc[n0 + 2] == "pending"
-    assert res.frame["last_break_status"].iloc[n0 + 3] == "rejected"
+    assert b.status == "INVALIDATED"
+    assert b.status_history[-1] == (n0 + 3, "INVALIDATED")
+    assert res.frame["last_break_status"].iloc[n0 + 2] == "CANDIDATE"
+    assert res.frame["last_break_status"].iloc[n0 + 3] == "INVALIDATED"
 
 
 def test_change_of_character_against_bullish_structure():

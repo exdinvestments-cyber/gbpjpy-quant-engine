@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gbpjpy-quant-engine"
-version = "0.1.0"
+version = "0.1.1"
 description = "GBPJPY H4 Market Intelligence Engine (Phase 1A) - descriptive market-context analysis only; no execution."
 readme = "README.md"
 requires-python = ">=3.10"

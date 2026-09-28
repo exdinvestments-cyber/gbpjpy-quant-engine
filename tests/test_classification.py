@@ -18,7 +18,7 @@ def bull_row(**over):
         "momentum_acceleration": "steady", "volatility_regime": "normal", "volatility_trend": "stable",
         "atr_percentile": 50.0, "atr_ratio": 1.0, "volatility_shock": False, "extension_state": "normal",
         "extension_direction": "up", "range_location_medium": 70.0, "bars_since_break": 5.0,
-        "last_break_type": "BOS", "last_break_direction": "bullish", "last_break_status": "confirmed",
+        "last_break_type": "BOS", "last_break_direction": "bullish", "last_break_status": "CONFIRMED",
     }
     row.update(over)
     return row

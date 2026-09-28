@@ -2,7 +2,7 @@
 
 Research-grade algorithmic analysis system dedicated to **GBPJPY**.
 
-**Current phase: 1A — H4 Market Intelligence Engine.** It describes the H4 environment (structure, trend,
+**Current phase: 1A.1 — H4 Market Intelligence Engine (hardened).** It describes the H4 environment (structure, trend,
 volatility, momentum, chop, levels, location, regime) and produces a strategic LONG / SHORT / NEUTRAL context bias
 with machine-readable reasons.
 
@@ -37,8 +37,13 @@ print(snap.regime, snap.h4_bias, snap.bias_confidence, snap.reason_codes)
 print(inspect(result))            # human-readable explanation
 ```
 
-CSV input needs `timestamp, open, high, low, close` and optionally `volume` (tick volume) and `spread`.
+CSV input needs `timestamp, open, high, low, close` and optionally `volume` and `spread`.
 Naive timestamps must be given an explicit timezone (`--tz` / `assume_timezone`); the engine never guesses.
+`volume` is broker **tick** volume (not exchange volume); volume and spread are carried through for later
+execution/market-quality modules but are not used by any Phase 1A feature.
+
+The core is platform agnostic (stdlib + numpy + pandas + PyYAML). Future MT4/MT5 adapters must convert broker
+server time to canonical UTC bars before data reaches the engine; no adapter exists yet.
 
 ## Documentation
 

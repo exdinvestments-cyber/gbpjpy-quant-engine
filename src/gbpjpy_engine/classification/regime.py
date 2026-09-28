@@ -101,8 +101,10 @@ def descriptive_codes(row: Mapping[str, Any], cfg: H4Config) -> list[str]:
     bsb = _num(row, "bars_since_break")
     if not math.isnan(bsb) and bsb <= cfg.structure.transition_memory_bars:
         status = row.get("last_break_status")
-        if status == "rejected":
+        if status == "INVALIDATED":
             out.append(RC.BREAK_REJECTED)
+        elif status == "FAILED":
+            out.append(RC.BREAK_FAILED)
         else:
             bt, bd = row.get("last_break_type"), row.get("last_break_direction")
             if bt == "CHOCH":
@@ -209,13 +211,13 @@ _BULL_CONFLICTS = {
     "STRUCTURE_BEARISH", "TREND_ALIGNED_BEARISH", "MOMENTUM_BEARISH", "DI_BEARISH", "CHOCH_BEARISH",
     "HIGH_CHOP", "SEVERE_CHOP", "LOW_DIRECTIONAL_EFFICIENCY", "OVEREXTENDED_UP", "EXTENDED_UP",
     "NEAR_STRONG_RESISTANCE", "VOLATILITY_EXTREME", "STRUCTURE_TREND_CONFLICT", "LOW_STRUCTURE_QUALITY",
-    "MOMENTUM_DECELERATING", "BREAK_REJECTED", "ADX_WEAK",
+    "MOMENTUM_DECELERATING", "BREAK_REJECTED", "BREAK_FAILED", "ADX_WEAK",
 }
 _BEAR_CONFLICTS = {
     "STRUCTURE_BULLISH", "TREND_ALIGNED_BULLISH", "MOMENTUM_BULLISH", "DI_BULLISH", "CHOCH_BULLISH",
     "HIGH_CHOP", "SEVERE_CHOP", "LOW_DIRECTIONAL_EFFICIENCY", "OVEREXTENDED_DOWN", "EXTENDED_DOWN",
     "NEAR_STRONG_SUPPORT", "VOLATILITY_EXTREME", "STRUCTURE_TREND_CONFLICT", "LOW_STRUCTURE_QUALITY",
-    "MOMENTUM_DECELERATING", "BREAK_REJECTED", "ADX_WEAK",
+    "MOMENTUM_DECELERATING", "BREAK_REJECTED", "BREAK_FAILED", "ADX_WEAK",
 }
 _RANGE_CONFLICTS = {
     "TREND_STRONG_BULLISH", "TREND_STRONG_BEARISH", "HIGH_DIRECTIONAL_EFFICIENCY", "ADX_STRONG",

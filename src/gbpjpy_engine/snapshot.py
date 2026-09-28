@@ -90,6 +90,7 @@ class H4Snapshot:
     data_quality_flags: list
     warmup_complete: bool
     reason_codes: list
+    market_data: dict = field(default_factory=dict)
     warnings: list = field(default_factory=list)
     engine_version: str = ""
     config_hash: str = ""
@@ -116,19 +117,23 @@ def build_snapshot(
     symbol: str,
     engine_version: str,
     config_hash: str,
+    swing_history: list | None = None,
 ) -> H4Snapshot:
     ms = {
         "state": _g(row, "structure_state"),
         "swing_state": _g(row, "swing_structure_state"),
         "defined": _g(row, "structure_defined"),
         "last_swing_high": _g(row, "last_swing_high"),
-        "last_swing_high_time": _g(row, "last_swing_high_time"),
+        "last_swing_high_occurred_at": _g(row, "last_swing_high_occurred_at"),
         "last_swing_high_confirmed_at": _g(row, "last_swing_high_confirmed_at"),
         "last_high_label": _g(row, "last_high_label"),
         "last_swing_low": _g(row, "last_swing_low"),
-        "last_swing_low_time": _g(row, "last_swing_low_time"),
+        "last_swing_low_occurred_at": _g(row, "last_swing_low_occurred_at"),
         "last_swing_low_confirmed_at": _g(row, "last_swing_low_confirmed_at"),
         "last_low_label": _g(row, "last_low_label"),
+        "swing_sequence": _g(row, "swing_sequence"),
+        "history_label_counts": {k: _g(row, f"hist_{k}") for k in ("hh", "hl", "lh", "ll")},
+        "swing_history": [to_jsonable(s.to_dict()) for s in (swing_history or [])],
         "last_break": {
             "type": _g(row, "last_break_type"),
             "direction": _g(row, "last_break_direction"),
@@ -137,6 +142,10 @@ def build_snapshot(
             "magnitude": _g(row, "last_break_magnitude"),
             "magnitude_atr": _g(row, "last_break_atr"),
             "status": _g(row, "last_break_status"),
+            "previous_status": _g(row, "last_break_previous_status"),
+            "transition_reason": _g(row, "last_break_transition_reason"),
+            "confirmed_at": _g(row, "last_break_confirmed_at"),
+            "failed_at": _g(row, "last_break_failed_at"),
             "structure_before": _g(row, "last_break_structure_before"),
             "structure_after": _g(row, "last_break_structure_after"),
             "bars_since": _g(row, "bars_since_break"),
@@ -218,6 +227,8 @@ def build_snapshot(
         data_quality_flags=list(row.get("data_quality_flags") or []),
         warmup_complete=bool(row.get("warmup_complete", False)),
         reason_codes=list(reason_codes),
+        # carried for later execution / market-quality modules; NOT used by Phase 1A features
+        market_data={k: _g(row, k) for k in ("volume", "spread", "source")},
         warnings=list(warnings),
         engine_version=engine_version,
         config_hash=config_hash,

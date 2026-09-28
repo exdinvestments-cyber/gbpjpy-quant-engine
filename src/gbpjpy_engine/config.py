@@ -86,17 +86,42 @@ class StructureConfig:
     break_min_atr: float = _p(
         0.25,
         "A structural break requires the candle CLOSE to be beyond the swing level by at least this "
-        "many ATR. Wick-only or tiny closes are not structural breaks.",
+        "many ATR. Wick-only or tiny closes are not structural breaks. Such a break starts as CANDIDATE.",
     )
     break_confirm_bars: int = _p(
         2,
-        "Bars after a break during which every close must hold beyond the level for the break to "
-        "become 'confirmed'. A close back through the level in this window marks it 'rejected'.",
+        "Bars after a break during which every close must hold beyond the level for the break to move "
+        "CANDIDATE -> CONFIRMED. Any close back through the level in this window moves it to INVALIDATED.",
+    )
+    break_accept_bars: int = _p(
+        6,
+        "Minimum bars since the break before a CONFIRMED break can become ACCEPTED (requires follow-through, "
+        "see break_accept_atr).",
+    )
+    break_accept_atr: float = _p(
+        1.0,
+        "Follow-through required for ACCEPTED: the best close beyond the level must reach this many ATR "
+        "(ATR at the break bar).",
+    )
+    break_fail_atr: float = _p(
+        0.25,
+        "A CONFIRMED or ACCEPTED break becomes FAILED when a later close is back through the level by at least "
+        "this many ATR (ATR of that later bar). Earlier recorded states are never rewritten.",
+    )
+    break_monitor_bars: int = _p(
+        60,
+        "Bars after the break during which the lifecycle is monitored. After this the last state is frozen; "
+        "a much later return through the level is treated as new structure, not as failure of this break.",
+    )
+    swing_history_size: int = _p(
+        16,
+        "Rolling number of confirmed structural swings retained in working memory and exposed per bar "
+        "(swing_history). Must be >= 4 and >= quality_swings.",
     )
     transition_memory_bars: int = _p(
         30,
-        "How long (bars) a non-rejected counter-structure break (CHoCH) keeps the structure state "
-        "'transitional' unless the swing sequence re-establishes a clear direction first.",
+        "How long (bars) a counter-structure break (CHoCH) that is neither INVALIDATED nor FAILED keeps the "
+        "structure state 'transitional' unless the swing sequence re-establishes a clear direction first.",
     )
     quality_swings: int = _p(8, "Number of most recent confirmed swings used for structure-quality measures.")
     quality_window_bars: int = _p(60, "Trailing bars used for break-conflict, reversal-frequency and persistence measures.")
@@ -210,6 +235,11 @@ class LevelConfig:
     max_zones: int = _p(12, "Maximum zones retained (strongest first) to avoid meaningless line clutter.")
     near_level_atr: float = _p(0.75, "A zone within this many ATR of price counts as 'near'.")
     strong_level_score: float = _p(60.0, "level_strength_score at/above which a zone is 'strong'.")
+    invalidate_after_breaks: int = _p(
+        4,
+        "A zone is INVALIDATED once closes have crossed from one side of it to the other this many times "
+        "within the lookback (it no longer behaves as a level). 0 disables break-based invalidation.",
+    )
 
 
 @dataclass(frozen=True)
@@ -320,6 +350,11 @@ class H4Config:
         v = self.volatility
         if not (0 <= v.very_low_pct < v.low_pct < v.high_pct < v.extreme_pct <= 100):
             raise ValueError("volatility percentile thresholds must be increasing within 0..100")
+        st = self.structure
+        if st.swing_history_size < 4 or st.swing_history_size < st.quality_swings:
+            raise ValueError("structure.swing_history_size must be >= 4 and >= structure.quality_swings")
+        if not (1 <= st.break_confirm_bars <= st.break_accept_bars <= st.break_monitor_bars):
+            raise ValueError("require 1 <= break_confirm_bars <= break_accept_bars <= break_monitor_bars")
         b = self.bias
         if min(b.structure_weight, b.trend_weight, b.momentum_weight) < 0:
             raise ValueError("bias family weights must be non-negative")

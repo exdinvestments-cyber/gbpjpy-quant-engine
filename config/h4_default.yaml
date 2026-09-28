@@ -1,4 +1,4 @@
-# GBPJPY H4 Market Intelligence Engine - Phase 1A baseline configuration.
+# GBPJPY H4 Market Intelligence Engine - Phase 1A(.1) baseline configuration.
 #
 # Baseline, defensible defaults. NOT optimised. Every key is documented below.
 # Load with gbpjpy_engine.load_config('config/h4_default.yaml'); omitted keys fall back to defaults.
@@ -43,13 +43,28 @@ swing:
 
 structure:
   # A structural break requires the candle CLOSE to be beyond the swing level by at least this many ATR.
-  # Wick-only or tiny closes are not structural breaks.
+  # Wick-only or tiny closes are not structural breaks. Such a break starts as CANDIDATE.
   break_min_atr: 0.25
-  # Bars after a break during which every close must hold beyond the level for the break to become
-  # 'confirmed'. A close back through the level in this window marks it 'rejected'.
+  # Bars after a break during which every close must hold beyond the level for the break to move
+  # CANDIDATE -> CONFIRMED. Any close back through the level in this window moves it to INVALIDATED.
   break_confirm_bars: 2
-  # How long (bars) a non-rejected counter-structure break (CHoCH) keeps the structure state
-  # 'transitional' unless the swing sequence re-establishes a clear direction first.
+  # Minimum bars since the break before a CONFIRMED break can become ACCEPTED (requires follow-through,
+  # see break_accept_atr).
+  break_accept_bars: 6
+  # Follow-through required for ACCEPTED: the best close beyond the level must reach this many ATR (ATR
+  # at the break bar).
+  break_accept_atr: 1.0
+  # A CONFIRMED or ACCEPTED break becomes FAILED when a later close is back through the level by at
+  # least this many ATR (ATR of that later bar). Earlier recorded states are never rewritten.
+  break_fail_atr: 0.25
+  # Bars after the break during which the lifecycle is monitored. After this the last state is frozen; a
+  # much later return through the level is treated as new structure, not as failure of this break.
+  break_monitor_bars: 60
+  # Rolling number of confirmed structural swings retained in working memory and exposed per bar
+  # (swing_history). Must be >= 4 and >= quality_swings.
+  swing_history_size: 16
+  # How long (bars) a counter-structure break (CHoCH) that is neither INVALIDATED nor FAILED keeps the
+  # structure state 'transitional' unless the swing sequence re-establishes a clear direction first.
   transition_memory_bars: 30
   # Number of most recent confirmed swings used for structure-quality measures.
   quality_swings: 8
@@ -221,6 +236,9 @@ levels:
   near_level_atr: 0.75
   # level_strength_score at/above which a zone is 'strong'.
   strong_level_score: 60.0
+  # A zone is INVALIDATED once closes have crossed from one side of it to the other this many times
+  # within the lookback (it no longer behaves as a level). 0 disables break-based invalidation.
+  invalidate_after_breaks: 4
 
 round_numbers:
   # JPY round-number intervals (1.00 = 100 pips, 0.50 = 50 pips). Context only.

@@ -93,11 +93,11 @@ def test_false_breakout(scenario_results):
     brk = [b for b in res.structure.breaks if b.break_index == k and b.direction == "bullish"]
     assert brk, "the fake breakout bar must be registered as a structural break"
     b = brk[0]
-    assert b.status == "rejected"
+    assert b.status == "INVALIDATED"
     assert b.status_history[-1][0] == k + 1
     f = res.features
-    assert f["last_break_status"].iloc[k] == "pending"  # not known to be false at the time
-    assert f["last_break_status"].iloc[k + 1] == "rejected"
+    assert f["last_break_status"].iloc[k] == "CANDIDATE"  # not known to be false at the time
+    assert f["last_break_status"].iloc[k + 1] == "INVALIDATED"
     assert "BREAK_REJECTED" in f["reason_codes"].iloc[k + 1]
     # no bullish bias results from the failed breakout
     assert (f["h4_bias"].iloc[k : k + 10] != "LONG").all()

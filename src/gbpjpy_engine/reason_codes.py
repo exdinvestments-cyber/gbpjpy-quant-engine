@@ -21,6 +21,7 @@ class ReasonCode(str, Enum):
     CHOCH_BULLISH = "CHOCH_BULLISH"
     CHOCH_BEARISH = "CHOCH_BEARISH"
     BREAK_REJECTED = "BREAK_REJECTED"
+    BREAK_FAILED = "BREAK_FAILED"
     HIGH_STRUCTURE_QUALITY = "HIGH_STRUCTURE_QUALITY"
     LOW_STRUCTURE_QUALITY = "LOW_STRUCTURE_QUALITY"
     # trend
@@ -94,7 +95,8 @@ REASON_DESCRIPTIONS: dict[str, str] = {
     "BOS_BEARISH": "recent bearish break of structure (with prevailing structure)",
     "CHOCH_BULLISH": "recent bullish change of character (break against prevailing bearish structure)",
     "CHOCH_BEARISH": "recent bearish change of character (break against prevailing bullish structure)",
-    "BREAK_REJECTED": "most recent structural break was rejected (closed back through the level)",
+    "BREAK_REJECTED": "most recent structural break was INVALIDATED (closed back through the level before confirmation)",
+    "BREAK_FAILED": "most recent structural break FAILED after confirmation (price closed decisively back through the level)",
     "HIGH_STRUCTURE_QUALITY": "structure is clean and persistent",
     "LOW_STRUCTURE_QUALITY": "structure is noisy, overlapping or unstable",
     "TREND_ALIGNED_BULLISH": "EMA trend engine is bullish",

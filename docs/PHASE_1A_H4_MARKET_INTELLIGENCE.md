@@ -45,8 +45,8 @@ feature table) and never reach into feature internals.
 | `timestamp` | bar **open** time, timezone-aware, normalised to **UTC** |
 | `available_at` | `timestamp + 4h` — the bar's close. Every feature for the bar is only knowable at this time |
 | `open/high/low/close` | JPY prices (float) |
-| `volume` | tick volume if supplied, else NaN (flagged) |
-| `spread` | source-reported spread if supplied, else NaN (flagged). Units are those of the source; not used by Phase 1A features |
+| `volume` | **broker tick volume** if supplied, else NaN (flagged). Not exchange volume — see §2.2 |
+| `spread` | source-reported spread if supplied, else NaN (flagged). Units are those of the source |
 | `source` | data source label |
 
 Historical files and future live feeds use the same canonical frame (`to_canonical`, `load_csv`, `Bar`,
@@ -55,7 +55,38 @@ Historical files and future live feeds use the same canonical frame (`to_canonic
 `exclude_unclosed_bars(df, as_of)` / `engine.run(bars, as_of=...)` drop a still-forming bar so it can never be
 evaluated as if closed.
 
-### Validation (`validate_bars`)
+### 2.1 Broker timestamps and future MT4/MT5 adapters
+
+Canonical internal timestamps are always timezone-aware UTC (`data.interfaces.assert_canonical` enforces this at
+the engine boundary). The core never corrects broker timestamps. **Future MT4/MT5 adapters must normalise broker
+server time (commonly EET/EEST, UTC+2/+3 with DST) into the canonical format — UTC bar-open timestamps of closed
+bars — before sending data into the strategy engine**, e.g. `to_canonical(raw, assume_timezone="<broker tz>")`.
+DST-induced shifts of the H4 grid that remain after conversion are *flagged* (`TIMEZONE_ALIGNMENT_SHIFT`), never
+silently repaired.
+
+Target architecture (only the core and the neutral interface exist today):
+
+```
+GBPJPY Strategy Core            (this package, platform agnostic: stdlib + numpy + pandas + PyYAML)
+        |
+Broker-neutral interfaces       (data/interfaces.py: BarSource protocol, assert_canonical)
+      /            \
+MT4 Adapter     MT5 Adapter     (NOT implemented - future phases)
+```
+
+`tests/test_portability.py` parses every module's imports and fails if the core imports anything beyond the
+standard library, numpy, pandas and PyYAML, or anything MetaTrader/network related.
+
+### 2.2 Volume and spread
+
+`volume` in retail FX feeds is **broker tick volume**: the number of price updates on one broker's feed. Spot FX
+has no centralised exchange, so tick volume is not traded volume, is not comparable across brokers and can change
+with a broker's feed infrastructure. `spread` is broker-specific too. Both are preserved unchanged in the canonical
+frame, the feature table and each snapshot's `market_data` block so later execution / market-quality modules can
+consume them, but **no Phase 1A strategy feature uses them** (tested: randomising volume and spread changes no
+feature, regime or bias).
+
+### 2.3 Validation (`validate_bars`)
 
 Validation never modifies data. ERROR issues make the engine refuse to run (`fail_on_data_errors=True`);
 WARNING issues are attached to each affected bar (`data_quality_flags`, `data_quality_status`).
@@ -83,13 +114,21 @@ bar's flags.
 2. **Swings, structure, breaks and zones** are computed in an explicit forward walk: at bar `c` only arrays up to
    `c` are read, and per-bar outputs are written once and never revisited.
 3. **Swing confirmation.** A fractal pivot at bar `i` needs `right_bars` later bars. It is evaluated at
-   `c = i + right_bars` and stamped `confirmed_at = close time of bar c`. It does not exist in any state before `c`.
+   `c = i + right_bars`. Every swing carries **two explicit timestamps**: `occurred_at` (open of the pivot bar)
+   and `confirmed_at` (close of bar `c`, when it became knowable). Per-bar columns
+   (`last_swing_high_occurred_at` / `last_swing_high_confirmed_at`, same for lows), snapshots and the swing history
+   keep both. The swing does not exist in any state before `c`. The confirmation lag is intentional anti-repaint
+   protection; its sensitivity (`swing.left_bars`, `swing.right_bars`) is configurable and not shortened.
 4. **Superseded swings** (a more extreme same-type pivot arrives before a meaningful opposite swing) are marked
    with `removed_index`/`replaced_by`; history is not rewritten, so earlier bars still show the swing that was
    actually known then.
-5. **Break status** is time-indexed (`status_history`). A break is `pending` on its bar; it can only become
-   `confirmed`/`rejected` on later bars.
-6. **Tests** (`tests/test_lookahead.py`):
+5. **Break lifecycle** is an append-only list of transitions, each stamped with the bar at which it became known.
+   The per-bar frame stores the state *as known at that bar*; `BreakEvent.state_at(c)` / `snapshot_at(c)`
+   reproduce it later. A break CONFIRMED at T that FAILS at T+N still reads CONFIRMED at T.
+6. **Zones** are maintained by an incremental engine whose event log (`zone_events`) is append-only and indexed by
+   the bar at which each event became known; a truncated run's events are exactly the prefix of the full run's.
+7. **Tests** (`tests/test_lookahead.py`, plus point-in-time tests in `test_break_lifecycle.py`,
+   `test_structure_memory.py`, `test_levels_incremental.py`):
    * truncation invariance — running on `bars[:T+1]` reproduces rows `0..T` of the full run *exactly* for every
      column, plus identical snapshots (zones, reasons) at `T`;
    * future perturbation — replacing everything after `T` with different data leaves rows `0..T` unchanged;
@@ -108,18 +147,39 @@ bar's flags.
   swing. Candle noise therefore never becomes structure.
 * **Labels**: each swing vs the previous same-type swing: `HH/LH/EH` or `HL/LL/EL` (equal within
   `equal_level_atr × ATR`).
+* **Structural memory**: a rolling window of the `structure.swing_history_size` (default 16) most recent confirmed
+  swings is kept. Each record holds swing id, type, `occurred_at`, `confirmed_at`, price, classification
+  (HH/LH/EH/HL/LL/EL), `significance_atr` (distance from the previous opposite swing in ATR at confirmation) and
+  confirmation lag. `StructureResult.history_at(c)` returns exactly the window held at bar `c`; snapshots expose it
+  as `market_structure.swing_history`; per-bar columns add `swing_sequence` (e.g. `HL>HH>HL>HH`), label counts
+  (`hist_hh/hl/lh/ll`) and `hist_avg_significance_atr`. Leaving the window never alters a swing record.
 * **Swing state** (latest high label, latest low label): `HH+HL → bullish`, `LH+LL → bearish`,
   `HH+LL → transitional` (expanding/conflicting), anything else → `neutral`. Fewer than two highs and two lows →
   `neutral` with `structure_defined=False` (`STRUCTURE_UNCLEAR`).
 * **Structural breaks**: at bar `c`, against the latest swing high/low known at the end of `c-1`, a break requires
   the **close** beyond the level by `≥ break_min_atr × ATR`. Wick-only excursions and marginal closes are not
   breaks. Each level can break once. Stored per event: level, swing id, level time, break time, availability time,
-  close, magnitude, ATR-normalised magnitude, wick extension, `closed_beyond`, structure before and after, status.
+  close, magnitude, ATR-normalised magnitude, wick extension, `closed_beyond`, structure before and after,
+  lifecycle transitions.
 * **Type**: with prevailing structure → `BOS`; against it → `CHOCH`; from neutral/transitional → `BREAKOUT`.
-* **Confirmation**: during the next `break_confirm_bars` bars every close must hold beyond the level → `confirmed`;
-  any close back through → `rejected`.
-* **Final structure state**: the swing state, overridden to `transitional` when a non-rejected break within
-  `transition_memory_bars` contradicts it (a live CHoCH), or when a CHoCH/breakout occurs from a neutral state.
+* **Break lifecycle** (evaluated on each later bar's close, only while `bars since break ≤ break_monitor_bars`):
+
+  | From | To | Rule |
+  |---|---|---|
+  | — | `CANDIDATE` | close beyond the level by `≥ break_min_atr × ATR` |
+  | `CANDIDATE` | `INVALIDATED` | any close back through the level within the confirmation window |
+  | `CANDIDATE` | `CONFIRMED` | every close for `break_confirm_bars` bars held beyond the level |
+  | `CONFIRMED` | `ACCEPTED` | `≥ break_accept_bars` since the break and best close beyond the level `≥ break_accept_atr × ATR(break)` |
+  | `CONFIRMED` / `ACCEPTED` | `FAILED` | a later close back through the level by `≥ break_fail_atr × ATR` |
+
+  `FAILED` and `INVALIDATED` are terminal; after `break_monitor_bars` the last state is frozen (a much later return
+  through the level is new structure, not failure of this break). Each transition stores bar, timestamp, previous
+  state, new state and a reason; the event exposes break time, confirmation, acceptance, failure and invalidation
+  timestamps, current and previous state and transition reason. Per-bar columns: `last_break_status`,
+  `last_break_previous_status`, `last_break_transition_reason`, `last_break_confirmed_at`, `last_break_failed_at`.
+* **Final structure state**: the swing state, overridden to `transitional` when a *live* (CANDIDATE, CONFIRMED or
+  ACCEPTED) break within `transition_memory_bars` contradicts it (a live CHoCH), or when a CHoCH/breakout occurs
+  from a neutral state. When that break FAILS or is INVALIDATED the override lapses on that bar.
 
 ### 4.2 Structure quality (0–100)
 
@@ -130,7 +190,7 @@ Weighted mean of components (each 0–1), all kept in the output as `sq_*`:
 | clarity | share of the last `quality_swings` labels agreeing with the dominant direction | 0.20 |
 | impulse_pullback | mean impulse leg / mean pullback leg (ATR), 1.0→0, 2.5→1 | 0.15 |
 | impulse_size | mean impulse leg in ATR, 1→0, 4→1 | 0.05 |
-| break_conflict | 1 − two-sided break share in window, reduced by rejected-break share | 0.10 |
+| break_conflict | 1 − two-sided break share in window, reduced by the share of INVALIDATED/FAILED breaks | 0.10 |
 | reversal_frequency | 1 − scaled number of structure-state changes in window | 0.10 |
 | swing_spacing | mean bars between swings, 2→0, 8→1 | 0.05 |
 | persistence | share of window bars in the current directional state | 0.15 |
@@ -199,9 +259,26 @@ Correlated components (efficiency / CI / displacement) have modest individual we
 
 ### 4.11 Support / resistance zones
 
-Rebuilt at every bar from information known at that bar: swings accepted by then (pivot within 300 bars, including
-later-superseded swings), break levels, and the trailing 60-bar range high/low. Prices are single-linkage clustered
-with tolerance `0.5 × ATR`; zones have a minimum half-width of `0.1 × ATR`. Per zone: bounds, midpoint, type
+Maintained **incrementally** (`features/levels.py`, `ZoneBook`). Level sources known at bar `c`: swings accepted by
+then with pivot inside the 300-bar lookback (including later-superseded swings), break levels, and the trailing
+60-bar range high/low. Sources are single-linkage clustered with tolerance `0.5 × ATR`; zones have a minimum
+half-width of `0.1 × ATR`. On each new bar:
+
+* **update** — every zone's sliding-window counters (touch bars, interaction episodes, rejections, side-to-side
+  crossings, last interaction) are advanced by one bar in O(1) instead of recounting the lookback;
+* **create / update / merge** — a new source within tolerance of an existing zone joins it (the zone keeps its id
+  and creation bar; a source bridging two zones merges them); otherwise a new zone is created;
+* **age / expire** — sources leave when they fall out of the lookback; a zone that loses all sources expires, one
+  whose remaining sources separate is split;
+* **invalidate** — a zone crossed `invalidate_after_breaks` (default 4) times inside the lookback is INVALIDATED and
+  its sources retired (`0` disables this and restores the Phase 1A behaviour).
+
+Every event (`created`, `updated`, `merged`, `expired`, `invalidated`) is appended to `H4AnalysisResult.zone_events`
+with the bar at which it became known; invalidated zones are also listed in `invalidated_zones`. Zones carry
+`zone_id`, `created_index`, `bars_since_created` and `age_bars` (bars since their oldest live source).
+Zone geometry (tolerance, minimum width) uses the ATR at the zone's last membership change and is then held fixed.
+The previous full-rebuild algorithm is kept as `compute_levels_rebuild` (reference implementation); with a constant
+ATR and invalidation disabled the incremental engine reproduces it exactly, bar by bar (tested). Per zone: bounds, midpoint, type
 (support below price / resistance above; inside → by midpoint), sources, interaction episodes, touch bars, last
 interaction and bars since, age, rejections (touch bars that close outside the zone — above it after probing down into it, or below it after probing up), rejection
 strength, breaks (closes flipping from one side of the zone to the other), distance and ATR distance, and
@@ -239,7 +316,7 @@ Ordered rules on one bar's features (first match wins); the result carries `rule
 | 8 | chop ≥ 45 → `RANGE`, otherwise | `UNCLEAR` |
 
 Conflicting evidence is regime-aware (e.g. for bullish regimes: bearish momentum, extension up, near strong
-resistance, high chop, low efficiency, weak ADX, rejected break; acceleration/deceleration is resolved using the
+resistance, high chop, low efficiency, weak ADX, invalidated (`BREAK_REJECTED`) or failed (`BREAK_FAILED`) break; acceleration/deceleration is resolved using the
 momentum sign).
 
 ## 6. Directional bias
@@ -248,7 +325,7 @@ Families (correlated features blended inside, families weighted — see `classif
 
 | Family | Weight | Contents |
 |---|---|---|
-| structure | 0.40 | swing state × (0.5 + 0.5·quality); live CHoCH gives 0.35 in its direction; confirmed BOS +0.1 |
+| structure | 0.40 | swing state × (0.5 + 0.5·quality); live CHoCH gives 0.35 in its direction; CONFIRMED/ACCEPTED BOS +0.1; INVALIDATED/FAILED breaks give nothing |
 | trend | 0.35 | 0.8 × trend_score + 0.2 × DI spread scaled by ADX (EMA and ADX/DI are one family) |
 | momentum | 0.25 | bullish / bearish momentum scores |
 | market quality | dampener | × (1 − 0.4 · chop/100), both sides |
@@ -265,8 +342,10 @@ designed to return NEUTRAL often (≈ 70 % of bars on long random-walk data).
 ## 7. Outputs
 
 * `H4AnalysisResult.features` — flat table, one row per closed bar (≈ 190 columns incl. all components).
-* `H4Snapshot` — structured per-bar record with every field listed in the Phase 1A spec, plus zones, evidence,
-  family scores, modifiers, warnings, engine version and config hash. `to_dict()` / `to_json()`.
+* `H4Snapshot` — structured per-bar record with every field listed in the Phase 1A spec, plus the rolling swing
+  history, break lifecycle fields, zones (with ids), evidence, family scores, modifiers, `market_data`
+  (volume/spread/source, not used by features), warnings, engine version and config hash. `to_dict()` / `to_json()`.
+* `H4AnalysisResult.structure` (swings, breaks with transitions), `zone_events`, `invalidated_zones`.
 * `write_evaluation_log(path)` — JSONL, one record per evaluation: timestamp, input-data status and flags, all
   feature values, regime, evidence, bias, confidence, reason codes, warnings, config hash.
 * `export_features(path)` — `.parquet`, `.csv` or `.jsonl`.
@@ -275,7 +354,7 @@ designed to return NEUTRAL often (≈ 70 % of bars on long random-walk data).
 ## 8. Reason codes
 
 Defined in `reason_codes.py` (`ReasonCode` enum + descriptions): structure (`STRUCTURE_*`, `BOS_*`, `CHOCH_*`,
-`BREAK_REJECTED`, `HIGH/LOW_STRUCTURE_QUALITY`), trend (`TREND_*`, `EMA_SLOPE_*`, `STRUCTURE_TREND_CONFLICT`),
+`BREAK_REJECTED` (invalidated), `BREAK_FAILED`, `HIGH/LOW_STRUCTURE_QUALITY`), trend (`TREND_*`, `EMA_SLOPE_*`, `STRUCTURE_TREND_CONFLICT`),
 ADX (`ADX_STRONG/WEAK`, `DI_BULLISH/BEARISH`), momentum, chop/efficiency, volatility (`VOLATILITY_*`), location
 (`NEAR_STRONG_SUPPORT/RESISTANCE`, `NEAR_ROUND_NUMBER`, `EXTENDED_*`, `OVEREXTENDED_*`, `RANGE_*_LOCATION`), bias
 (`BIAS_*`) and engine (`INSUFFICIENT_HISTORY`, `DATA_QUALITY_WARNING`).
@@ -298,19 +377,39 @@ baseline defaults, **not optimised**. `H4Config.config_hash()` is written into e
 
 * **Not validated on real GBPJPY history yet.** Behavioural tests use deterministic synthetic scenarios, which are
   engineering checks, not evidence of predictive value or profitability.
-* Thresholds (chop, regime, bias, strength scores) are heuristic baselines; weights inside composite scores are
-  judgement-based and not fitted.
+* Thresholds (chop, regime, bias, strength scores, break lifecycle and zone invalidation) are heuristic baselines;
+  weights inside composite scores are judgement-based and not fitted.
 * Swing detection is fractal + ATR-amplitude based; confirmation latency is `right_bars` bars (12 h by default), so
-  structure always lags price by design.
-* Break confirmation only considers the first `break_confirm_bars` bars; a break that fails later keeps status
-  `confirmed` (the later failure appears as a new opposite break).
-* Structure state uses only the latest two swing highs and lows (plus live CHoCH); longer-horizon structure is
-  captured only indirectly by the trend engine and quality metrics.
+  structure always lags price by design. Whether 3 bars is appropriate is left to later research.
+* The structure *state* rule still reads the latest swing high/low labels (plus live CHoCH); the richer rolling
+  history (16 swings) is exposed for Phase 1B but does not yet feed the state classification beyond the quality
+  score.
+* Break lifecycle monitoring stops after `break_monitor_bars` (60 bars); a break's state is frozen after that.
+  Failure uses a close-based threshold; intrabar spikes back through a level do not fail a break.
+* Incremental zones fix their geometry at the last membership change; zones therefore differ from a
+  current-ATR rebuild when volatility changes (on the 6,000-bar benchmark, geometry alone changed the nearest
+  support/resistance on ~17–19 % of bars). Zone invalidation (default 4 crossings) is a new, deliberate behaviour
+  change and removes heavily-crossed zones that previously remained listed with low strength.
 * Percentile-based features need ~100–500 bars of history; in very persistent trends the extension percentile can
   stay high for long periods.
-* Zones are rebuilt every bar (O(n × lookback)); ~1.5 ms/bar on a laptop-class CPU — fine for research,
-  may need incremental updates for high-frequency re-evaluation.
-* Tick volume and spread are validated but not used in features.
+* Runtime ~0.7 ms/bar (6,000 bars ≈ 4.3 s in this environment); the swing/structure forward walk and pandas
+  feature assembly now dominate.
+* Tick volume and spread are validated and preserved but not used in features; tick volume is broker-specific.
 * Broker data in server time with DST shifts produces H4 grids that move relative to UTC; this is flagged
-  (`TIMEZONE_ALIGNMENT_SHIFT`), not corrected.
+  (`TIMEZONE_ALIGNMENT_SHIFT`), not corrected. Adapters must supply UTC canonical bars.
+* No MT4/MT5 adapter exists yet; only the broker-neutral `BarSource` protocol is defined.
 * No economic-calendar/news awareness; shocks are detected only after the bar closes.
+
+## 12. Change log — Phase 1A.1 (hardening)
+
+* Structural memory: rolling history of `swing_history_size` confirmed swings with occurrence and confirmation
+  timestamps, classification and significance.
+* Break lifecycle CANDIDATE / CONFIRMED / ACCEPTED / FAILED / INVALIDATED with append-only, point-in-time transitions
+  (replaces `pending` / `confirmed` / `rejected`; mapping: pending→CANDIDATE, rejected→INVALIDATED,
+  confirmed→CONFIRMED and may later become ACCEPTED or FAILED).
+* Incremental zone engine with create/update/merge/expire/invalidate events; reference rebuild retained for
+  equivalence testing.
+* Explicit `occurred_at` vs `confirmed_at` everywhere (`last_swing_*_time` columns renamed to
+  `last_swing_*_occurred_at`).
+* Broker-neutral `BarSource` protocol and `assert_canonical`; documentation of adapter timestamp normalisation and
+  tick-volume semantics; platform-isolation tests.

@@ -5,9 +5,15 @@ Conventions (applied identically to historical files and, later, live data):
 * ``timestamp`` is the bar OPEN time, timezone-aware, normalised to UTC.
 * ``close_time`` = ``timestamp`` + timeframe.  A bar's information (and every
   feature computed from it) is only available at ``close_time``.
-* Prices are floats in JPY.  ``volume`` (tick volume) and ``spread`` are
-  optional; when absent they are NaN and flagged by validation - never
-  invented.
+* Prices are floats in JPY.  ``volume`` and ``spread`` are optional; when
+  absent they are NaN and flagged by validation - never invented.
+* ``volume`` is BROKER TICK VOLUME (number of quote updates on one broker's
+  feed).  Spot FX is decentralised: tick volume is not exchange-traded volume
+  and differs between brokers.  Volume and spread are preserved for later
+  execution / market-quality modules and are not used by Phase 1A features.
+* Future MT4/MT5 adapters must convert broker server timestamps to this
+  canonical UTC form before data reaches the strategy core (see
+  ``data.interfaces``).
 * Nothing in this module sorts, de-duplicates or repairs data.  That is left
   to explicit, logged validation decisions.
 """

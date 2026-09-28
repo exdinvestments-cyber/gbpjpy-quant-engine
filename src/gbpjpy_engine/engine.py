@@ -20,7 +20,8 @@ from . import __version__
 from .classification.bias import BiasResult, derive_bias
 from .classification.regime import RegimeResult, classify_regime
 from .config import H4Config
-from .data.model import CANONICAL_COLUMNS, DataIntegrityError, exclude_unclosed_bars
+from .data.interfaces import assert_canonical
+from .data.model import DataIntegrityError, exclude_unclosed_bars
 from .data.validation import DataQualityReport, validate_bars
 from .features.candles import candle_features
 from .features.chop import chop_features, efficiency_features
@@ -54,6 +55,8 @@ class H4AnalysisResult:
     warnings: list[list[str]]
     report: DataQualityReport
     config: H4Config
+    zone_events: list = field(default_factory=list)  # ZoneEvent audit trail (index = bar it became known)
+    invalidated_zones: list = field(default_factory=list)
     engine_version: str = __version__
     _snapshots: dict = field(default_factory=dict, repr=False)
 
@@ -76,6 +79,7 @@ class H4AnalysisResult:
             self._snapshots[i] = build_snapshot(
                 row, self.zones_by_bar[i], self.regimes[i], self.biases[i], self.reason_codes[i],
                 self.warnings[i], self.config.data.symbol, self.engine_version, self.config.config_hash(),
+                swing_history=self.structure.history_at(i),
             )
         return self._snapshots[i]
 
@@ -110,9 +114,7 @@ class H4MarketIntelligenceEngine:
     # ------------------------------------------------------------------
     def run(self, bars: pd.DataFrame, as_of: pd.Timestamp | None = None) -> H4AnalysisResult:
         cfg = self.config
-        missing = [c for c in CANONICAL_COLUMNS if c not in bars.columns]
-        if missing:
-            raise DataIntegrityError(f"bars are not canonical; missing {missing} (use data.to_canonical)")
+        assert_canonical(bars)
         if as_of is not None:
             bars = exclude_unclosed_bars(bars, as_of, cfg.data.timeframe_minutes)
 
@@ -139,7 +141,7 @@ class H4MarketIntelligenceEngine:
         wick_mean = candles["wick_ratio"].rolling(W, min_periods=5).mean()
         structure = compute_structure(df, atr_s, overlap_mean, wick_mean, cfg.swing, cfg.structure, tf)
         chop = chop_features(df, atr_s, trend, adx_df, candles, eff, structure.frame, cfg.chop)
-        levels, zones_by_bar = compute_levels(df, atr_s, structure, cfg.levels)
+        levels, zones_by_bar, zone_book = compute_levels(df, atr_s, structure, cfg.levels, return_book=True)
         rn = round_number_features(df["close"], atr_s, cfg.round_numbers, cfg.data)
         rloc = range_location_features(df, cfg.range_location)
         ext = extension_features(df, trend, atr_s, cfg.extension)
@@ -202,6 +204,7 @@ class H4MarketIntelligenceEngine:
         return H4AnalysisResult(
             features=feats, structure=structure, zones_by_bar=zones_by_bar, regimes=regimes, biases=biases,
             reason_codes=all_codes, warnings=all_warn, report=report, config=cfg,
+            zone_events=zone_book.events, invalidated_zones=zone_book.invalidated,
         )
 
 
