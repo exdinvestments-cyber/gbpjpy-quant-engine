@@ -1,0 +1,84 @@
+# GBPJPY Execution Safety (Phase 1G) - baseline execution policy.
+#
+# EVERY VALUE IS CONFIGURATION, NOT VALIDATED EDGE. Conservative engineering defaults, never optimised against profit.
+# Execution may only ACCEPT / DEFER / REJECT / CANCEL / RECONCILE / HALT: no value here can improve a price,
+# move a stop, extend a target or raise a volume. Load with gbpjpy_engine.execution.load_execution_policy(path).
+
+
+freshness:
+  # A quote older than this is STALE_QUOTE (never submitted on). [CONFIGURATION - NOT VALIDATED EDGE]
+  quote_max_age_seconds: 10.0
+  # Account snapshots older than this block submission. [CONFIGURATION - NOT VALIDATED EDGE]
+  account_max_age_seconds: 60.0
+  # Symbol/capability data older than this blocks submission. [CONFIGURATION - NOT VALIDATED EDGE]
+  capabilities_max_age_seconds: 3600.0
+  # Conversion rates older than this block the risk recheck. [CONFIGURATION - NOT VALIDATED EDGE]
+  rate_max_age_seconds: 7200.0
+
+intent:
+  # Finite validity of an OrderIntent after creation. [CONFIGURATION - NOT VALIDATED EDGE]
+  validity_minutes: 30.0
+  # Share of the validity after which the intent is AGING. [CONFIGURATION - NOT VALIDATED EDGE]
+  aging_fraction: 0.5
+  # Maximum spread (pips) at submission. [CONFIGURATION - NOT VALIDATED EDGE]
+  max_spread_pips: 4.0
+  # Maximum spread as a fraction of H1 ATR at submission. [CONFIGURATION - NOT VALIDATED EDGE]
+  max_spread_atr_fraction: 0.15
+  # DEFER or REJECT when the final spread check fails. [CONFIGURATION - NOT VALIDATED EDGE]
+  spread_action: "DEFER"
+  # Maximum adverse executable-price move vs the approved reference (pips). [CONFIGURATION - NOT VALIDATED EDGE]
+  max_deterioration_pips: 8.0
+  # Maximum adverse move in H1 ATR. [CONFIGURATION - NOT VALIDATED EDGE]
+  max_deterioration_atr: 0.25
+  # REJECT or DEFER on excessive deterioration. Never chase. [CONFIGURATION - NOT VALIDATED EDGE]
+  deterioration_action: "REJECT"
+  # Maximum slippage an adapter may accept on a market order (sent with the request). [CONFIGURATION - NOT VALIDATED EDGE]
+  max_slippage_pips: 3.0
+  # Reduce volume (round DOWN) when a price move would exceed the Phase 1F cap. [CONFIGURATION - NOT VALIDATED EDGE]
+  allow_volume_reduction: true
+  # Minimum distance (ATR) from the executable price to the first opposing structure. [CONFIGURATION - NOT VALIDATED EDGE]
+  min_room_atr: 0.5
+
+retry:
+  # Maximum submission attempts per intent (each attempt re-runs the full gate). [CONFIGURATION - NOT VALIDATED EDGE]
+  max_attempts: 3
+  # Maximum price-change/requote attempts per intent. [CONFIGURATION - NOT VALIDATED EDGE]
+  max_requotes: 2
+  # Deterministic backoff base for transient infrastructure failures. [CONFIGURATION - NOT VALIDATED EDGE]
+  backoff_base_seconds: 1.0
+  # Backoff multiplier per attempt. [CONFIGURATION - NOT VALIDATED EDGE]
+  backoff_factor: 2.0
+  # Backoff ceiling. [CONFIGURATION - NOT VALIDATED EDGE]
+  backoff_max_seconds: 8.0
+  # No acknowledgement within this (monotonic) time = UNKNOWN. [CONFIGURATION - NOT VALIDATED EDGE]
+  submission_timeout_seconds: 10.0
+
+fills:
+  # ACCEPT_PARTIAL, CANCEL_REMAINDER or CONTINUE_WITHIN_VALIDITY_WINDOW. [CONFIGURATION - NOT VALIDATED EDGE]
+  partial_fill_policy: "ACCEPT_PARTIAL"
+  # A fill slipping adversely by more than this raises an incident. [CONFIGURATION - NOT VALIDATED EDGE]
+  excessive_slippage_pips: 10.0
+
+protection:
+  # Every filled position must carry the structural stop. [CONFIGURATION - NOT VALIDATED EDGE]
+  require_stop: true
+  # Every filled position must carry the primary target. [CONFIGURATION - NOT VALIDATED EDGE]
+  require_target: true
+  # EMERGENCY_CLOSE_INTENT (recorded for the future adapter) or ALERT_ONLY. Nothing is closed in Phase 1G. [CONFIGURATION - NOT VALIDATED EDGE]
+  unprotected_action: "EMERGENCY_CLOSE_INTENT"
+  # Allowed difference (points) between requested and confirmed protective prices. [CONFIGURATION - NOT VALIDATED EDGE]
+  price_tolerance_points: 0.0
+
+breaker:
+  # Consecutive rejections that HALT execution. [CONFIGURATION - NOT VALIDATED EDGE]
+  max_consecutive_rejections: 3
+  # Critical reconciliation mismatches that HALT execution. [CONFIGURATION - NOT VALIDATED EDGE]
+  max_reconciliation_mismatches: 2
+  # Consecutive stale-quote gates that PAUSE execution. [CONFIGURATION - NOT VALIDATED EDGE]
+  max_stale_quote_events: 5
+  # Disconnects within the session that PAUSE execution. [CONFIGURATION - NOT VALIDATED EDGE]
+  max_disconnects: 3
+  # Permit submission while the connection is DEGRADED. [CONFIGURATION - NOT VALIDATED EDGE]
+  allow_degraded_connection: false
+  # Permit submission while the trading session status is UNKNOWN. [CONFIGURATION - NOT VALIDATED EDGE]
+  allow_unknown_session: false

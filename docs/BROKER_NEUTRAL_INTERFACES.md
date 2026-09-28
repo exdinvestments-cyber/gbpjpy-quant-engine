@@ -125,6 +125,19 @@ Phase 1F (`risk.AccountRiskEngine`) consumes, and a future adapter must supply:
   adjustments (`BalanceAdjustment`: deposits, withdrawals, corrections).
 * **Order state** - for the future execution engine only; Phase 1F places nothing.
 
+## Execution port (Phase 1G)
+
+The binding execution contract is `execution.port.ExecutionPort` (see `docs/PHASE_1G_EXECUTION_SAFETY.md`, sections
+16-17 for the exact MT4 and MT5 requirements). An adapter supplies: connection status, market snapshots (bid, ask,
+UTC time, session status), symbol specification, capabilities (account mode HEDGING/NETTING, market/pending support,
+atomic protection, volume limits and step, stop/freeze levels, filling modes, report time), account snapshot, open
+positions and pending orders (with the client order key and strategy numeric id where present), fills per client
+order key, order status by key (`WORKING` / `FILLED` / `CANCELLED` / `NOT_FOUND`), and accepts
+`request_submission`, `request_protection`, `request_modification`, `request_cancellation` and `request_close`,
+returning a `PortResponse` (ACK / REJECTED with a canonical reason / TIMEOUT / DISCONNECTED / ERROR). Adapters never
+retry internally and never change prices, levels or volumes. The older "Order request / Order result / Position
+state" notes below are superseded by the canonical objects in `execution.model`.
+
 ## Symbol specification
 
 Canonical form consumed by the core: `trade.symbol.SymbolSpec(symbol, digits, point, pip_size, source)`, supplied by

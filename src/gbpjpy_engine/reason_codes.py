@@ -365,6 +365,61 @@ class ReasonCode(str, Enum):
     RISK_APPROVED = "RISK_APPROVED"
     RISK_REJECTED = "RISK_REJECTED"
     RISK_STATE_CORRUPTED = "RISK_STATE_CORRUPTED"
+    # Phase 1G - execution safety
+    INTENT_CREATED = "INTENT_CREATED"
+    INTENT_VALID = "INTENT_VALID"
+    INTENT_EXPIRED = "INTENT_EXPIRED"
+    INTENT_UNKNOWN = "INTENT_UNKNOWN"
+    DUPLICATE_INTENT_BLOCKED = "DUPLICATE_INTENT_BLOCKED"
+    RISK_HALTED = "RISK_HALTED"
+    RISK_PAUSED = "RISK_PAUSED"
+    RISK_STATE_UNAVAILABLE = "RISK_STATE_UNAVAILABLE"
+    RISK_APPROVAL_INVALID = "RISK_APPROVAL_INVALID"
+    RISK_REVALIDATED = "RISK_REVALIDATED"
+    RISK_EXCEEDED_AFTER_PRICE_MOVE = "RISK_EXCEEDED_AFTER_PRICE_MOVE"
+    DEPENDENCY_UNAVAILABLE = "DEPENDENCY_UNAVAILABLE"
+    UPSTREAM_VALID = "UPSTREAM_VALID"
+    UPSTREAM_INVALIDATED = "UPSTREAM_INVALIDATED"
+    CONNECTION_VALID = "CONNECTION_VALID"
+    CONNECTION_LOST = "CONNECTION_LOST"
+    CAPABILITIES_STALE = "CAPABILITIES_STALE"
+    ORDER_TYPE_UNSUPPORTED = "ORDER_TYPE_UNSUPPORTED"
+    NETTING_POSITION_CONFLICT = "NETTING_POSITION_CONFLICT"
+    SYMBOL_MISMATCH = "SYMBOL_MISMATCH"
+    QUOTE_FRESH = "QUOTE_FRESH"
+    QUOTE_STALE = "QUOTE_STALE"
+    MARKET_OPEN = "MARKET_OPEN"
+    MARKET_CLOSED = "MARKET_CLOSED"
+    ACCOUNT_STALE = "ACCOUNT_STALE"
+    INVALID_ORDER_GEOMETRY = "INVALID_ORDER_GEOMETRY"
+    PRICE_VALID = "PRICE_VALID"
+    PRICE_DETERIORATED = "PRICE_DETERIORATED"
+    SPREAD_VALID = "SPREAD_VALID"
+    STOPS_VALID = "STOPS_VALID"
+    INVALID_STOPS = "INVALID_STOPS"
+    CONVERSION_STALE = "CONVERSION_STALE"
+    VOLUME_VALID = "VOLUME_VALID"
+    VOLUME_REDUCED = "VOLUME_REDUCED"
+    VOLUME_INVALID = "VOLUME_INVALID"
+    RR_VALID = "RR_VALID"
+    RR_NO_LONGER_VALID = "RR_NO_LONGER_VALID"
+    ROOM_VALID = "ROOM_VALID"
+    ROOM_NO_LONGER_VALID = "ROOM_NO_LONGER_VALID"
+    RETRY_BACKOFF = "RETRY_BACKOFF"
+    RETRIES_EXHAUSTED = "RETRIES_EXHAUSTED"
+    SUBMIT_READY = "SUBMIT_READY"
+    SUBMITTED = "SUBMITTED"
+    ACKNOWLEDGED = "ACKNOWLEDGED"
+    SUBMISSION_TIMEOUT = "SUBMISSION_TIMEOUT"
+    RECONCILIATION_REQUIRED = "RECONCILIATION_REQUIRED"
+    RECONCILIATION_CLEAN = "RECONCILIATION_CLEAN"
+    PARTIAL_FILL = "PARTIAL_FILL"
+    FULL_FILL = "FULL_FILL"
+    BROKER_REJECTED = "BROKER_REJECTED"
+    PROTECTION_VALID = "PROTECTION_VALID"
+    UNPROTECTED_POSITION = "UNPROTECTED_POSITION"
+    EXECUTION_PAUSED = "EXECUTION_PAUSED"
+    EXECUTION_HALTED = "EXECUTION_HALTED"
 
     def __str__(self) -> str:  # pragma: no cover - cosmetic
         return self.value
@@ -712,6 +767,60 @@ REASON_DESCRIPTIONS: dict[str, str] = {
     "RISK_APPROVED": "risk-approved trade (NOT an order)",
     "RISK_REJECTED": "risk approval rejected (reason recorded)",
     "RISK_STATE_CORRUPTED": "persisted risk state corrupted - halted (fail closed)",
+    "INTENT_CREATED": "order intent created from a Phase 1F approval (immutable, NOT an order)",
+    "INTENT_VALID": "order intent inside its validity window",
+    "INTENT_EXPIRED": "order intent validity window elapsed - never submitted",
+    "INTENT_UNKNOWN": "unknown order intent id",
+    "DUPLICATE_INTENT_BLOCKED": "intent (or its setup) already sent/live - never sent twice",
+    "RISK_HALTED": "Phase 1F risk engine HALTED - execution halts (risk halt always wins)",
+    "RISK_PAUSED": "Phase 1F risk engine PAUSED - submission deferred",
+    "RISK_STATE_UNAVAILABLE": "Phase 1F risk state unavailable - fail closed",
+    "RISK_APPROVAL_INVALID": "Phase 1F risk reservation no longer active",
+    "RISK_REVALIDATED": "risk rechecked at the executable price within the Phase 1F cap",
+    "RISK_EXCEEDED_AFTER_PRICE_MOVE": "price move would push risk above the Phase 1F cap",
+    "DEPENDENCY_UNAVAILABLE": "an upstream state needed by the final gate is unavailable - fail closed",
+    "UPSTREAM_VALID": "setup, entry candidate, proposal and H4 permission still valid",
+    "UPSTREAM_INVALIDATED": "setup, entry candidate or proposal no longer valid",
+    "CONNECTION_VALID": "execution connection CONNECTED",
+    "CONNECTION_LOST": "execution connection lost/degraded/unknown - no submission",
+    "CAPABILITIES_STALE": "adapter capabilities/symbol data stale or missing",
+    "ORDER_TYPE_UNSUPPORTED": "order type not supported by the adapter",
+    "NETTING_POSITION_CONFLICT": "netting account already holds the symbol - order would net",
+    "SYMBOL_MISMATCH": "canonical symbol mismatch",
+    "QUOTE_FRESH": "quote within the freshness limit",
+    "QUOTE_STALE": "quote stale, missing, invalid or from the future",
+    "MARKET_OPEN": "trading session OPEN",
+    "MARKET_CLOSED": "trading session closed/halted/unknown - no submission",
+    "ACCOUNT_STALE": "account snapshot stale or missing",
+    "INVALID_ORDER_GEOMETRY": "pending order price on the wrong side of the market",
+    "PRICE_VALID": "executable price within the deterioration limits",
+    "PRICE_DETERIORATED": "executable price moved adversely beyond the limit - never chased",
+    "SPREAD_VALID": "spread at submission within limits",
+    "STOPS_VALID": "stop/target geometry valid at the executable price",
+    "INVALID_STOPS": "stop/target invalid at the executable price or inside the stop level",
+    "CONVERSION_STALE": "conversion rate unavailable/stale for the risk recheck",
+    "VOLUME_VALID": "validated volume within the approval and adapter limits",
+    "VOLUME_REDUCED": "volume reduced (rounded down) to stay within the Phase 1F cap",
+    "VOLUME_INVALID": "volume below the adapter minimum after revalidation",
+    "RR_VALID": "net R still meets the minimum at the executable price",
+    "RR_NO_LONGER_VALID": "net R below the minimum at the executable price",
+    "ROOM_VALID": "room to the first opposing structure still sufficient",
+    "ROOM_NO_LONGER_VALID": "insufficient room to the first opposing structure",
+    "RETRY_BACKOFF": "bounded deterministic backoff in progress",
+    "RETRIES_EXHAUSTED": "bounded submission attempts exhausted",
+    "SUBMIT_READY": "all final submission gates passed",
+    "SUBMITTED": "one submission request sent through the execution port",
+    "ACKNOWLEDGED": "submission acknowledged by the adapter",
+    "SUBMISSION_TIMEOUT": "submission outcome unknown (timeout/disconnect) - NOT a rejection",
+    "RECONCILIATION_REQUIRED": "reconciliation required before any further action",
+    "RECONCILIATION_CLEAN": "reconciliation found no critical mismatch",
+    "PARTIAL_FILL": "order partially filled",
+    "FULL_FILL": "order fully filled",
+    "BROKER_REJECTED": "adapter rejected the request (canonical reason recorded)",
+    "PROTECTION_VALID": "protective stop (and target) confirmed on the position",
+    "UNPROTECTED_POSITION": "position without confirmed protective stop - CRITICAL incident",
+    "EXECUTION_PAUSED": "execution circuit breaker PAUSED",
+    "EXECUTION_HALTED": "execution circuit breaker HALTED",
 }
 
 
