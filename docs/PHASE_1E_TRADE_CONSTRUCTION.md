@@ -20,7 +20,7 @@ Package `src/gbpjpy_engine/trade/`:
 | `stops.py` | reference selection, noise buffer, sanity, volatility adequacy, noise risk, stop quality — no target/R input |
 | `targets.py` | structural target discovery, clustering, ladder, barrier paths, reachability, quality, primary selection — no stop/R input |
 | `construct.py` | `TradeContext`, the state machine, R and cost maths, conflict, quality, decision |
-| `engine.py` | `TradeConstructionEngine.run(entry_result, h1_result, h4_result, broker=None, costs=None)` |
+| `engine.py` | `TradeConstructionEngine.run(entry_result, h1_result, h4_result, constraints=None, costs=None)` |
 | `report.py` | `explain_trade(result, id)` — the audit answers |
 | `outcomes.py` | MAE/MFE in R computed AFTER construction (never imported by construction) |
 
@@ -35,8 +35,8 @@ The engine does not ask "how can this trade reach 1:3?"; it asks "where is this 
    the minimum-asymmetry gate is applied to the PRIMARY target of this fixed geometry.
 4. **PROPOSED** or **REJECTED** (INVALIDATED / EXPIRED when the entry candidate or thesis fails first).
 
-If the natural structure does not offer the configured asymmetry the trade is REJECTED. The stop is **never moved
-closer** and the target is **never moved farther** to pass the gate: changing the minimum R changes only the
+If the natural structure does not offer the configured asymmetry the trade is REJECTED. The stop is never moved closer and the target is never moved farther to pass
+the gate: changing the minimum R changes only the
 decision, never the stop, the targets or the primary target (tested for thresholds from 0.25 to 10 R).
 
 ## 2. Input and revalidation

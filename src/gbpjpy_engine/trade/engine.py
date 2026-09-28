@@ -79,7 +79,7 @@ class TradeConstructionEngine:
         self.spec.validate()
 
     # ------------------------------------------------------------------
-    def run(self, entry_result, h1_result, h4_result, broker=None, costs=None) -> TradeResult:
+    def run(self, entry_result, h1_result, h4_result, constraints=None, costs=None) -> TradeResult:
         cfg, spec = self.cfg, self.spec
         if abs(spec.pip_size - h1_result.config.data.pip_size) > 1e-12:
             raise ValueError("symbol metadata pip size disagrees with the data configuration")
@@ -115,7 +115,7 @@ class TradeConstructionEngine:
             else:
                 try:
                     ctx = self._context(cand, p, S)
-                    broker_c = broker.stop_constraints(spec.symbol, cand.accepted["timestamp"]) if broker else UNKNOWN_CONSTRAINTS
+                    broker_c = constraints.stop_constraints(spec.symbol, cand.accepted["timestamp"]) if constraints else UNKNOWN_CONSTRAINTS
                     final = {"entry_candidate_valid": True, "h4_permission_valid": True,
                              "room_acceptable": _f(cand.accepted.get("remaining_room_score"), 0.0) >= 30.0}
                     construct(ctx, rec, cfg, spec, broker_c, costs, final)

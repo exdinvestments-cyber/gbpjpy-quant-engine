@@ -134,7 +134,7 @@ def test_stop_sanity_and_broker_constraints():
     assert "STOP_INSIDE_BROKER_STOP_LEVEL" in sanity(ctx, 189.36, CFG, GBPJPY, known)
     r = build(ctx)
     assert r.proposal["broker_constraints_status"] == "UNKNOWN"
-    rej = build(ctx, broker=known)
+    rej = build(ctx, constraints=known)
     assert rej.decision == "REJECT_TRADE" and rej.category == "INVALID_STOP"
 
 

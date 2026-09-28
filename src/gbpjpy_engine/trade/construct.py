@@ -163,8 +163,8 @@ def noisy_or(hits) -> float:
     return round(100.0 * (1.0 - prod), 2)
 
 
-def construct(ctx: TradeContext, rec: TradeConstruction, cfg, spec, broker=None, costs=None, final_checks=None) -> TradeConstruction:
-    broker = broker or UNKNOWN_CONSTRAINTS
+def construct(ctx: TradeContext, rec: TradeConstruction, cfg, spec, constraints=None, costs=None, final_checks=None) -> TradeConstruction:
+    constraints = constraints or UNKNOWN_CONSTRAINTS
     costs = costs or UnknownCosts()
     i, at, d = rec.index, rec.at, ctx.direction
     codes: list[str] = []
@@ -193,7 +193,7 @@ def construct(ctx: TradeContext, rec: TradeConstruction, cfg, spec, broker=None,
     buf = buffer_stop(ctx, ref, cfg, spec)
     stop = buf["proposed_stop_price"]
     codes += [STOP_CODE[ref["stop_reference_type"]], "STOP_BUFFER_APPLIED"]
-    bad = sanity(ctx, stop, cfg, spec, broker)
+    bad = sanity(ctx, stop, cfg, spec, constraints)
     base = {"stop": {**ref, **buf}}
     if bad:
         return reject("INVALID_STOP", "stop sanity failed: " + ",".join(bad), ["INVALID_STOP_GEOMETRY"] + bad, payload=base)
@@ -282,9 +282,9 @@ def construct(ctx: TradeContext, rec: TradeConstruction, cfg, spec, broker=None,
         "trade_construction_quality_score": quality, "trade_quality_families": fams,
         "trade_construction_conflict_score": conflict, "trade_conflict_hits": hits,
         "h4_permission": ctx.meta.get("h4_permission"), "setup_score": ctx.setup_score, "entry_quality_score": ctx.entry_quality,
-        "cost_assumptions": cm, "broker_constraints_status": broker.status,
-        "broker_constraints": {"min_stop_distance_points": broker.min_stop_distance_points,
-                               "freeze_level_points": broker.freeze_level_points, "source": broker.source},
+        "cost_assumptions": cm, "broker_constraints_status": constraints.status,
+        "broker_constraints": {"min_stop_distance_points": constraints.min_stop_distance_points,
+                               "freeze_level_points": constraints.freeze_level_points, "source": constraints.source},
         "stop_detail": stop_info,
         "volatility": {"h1_regime": ctx.vol_regime_h1, "h4_regime": ctx.vol_regime_h4,
                        "h1_atr_price": ctx.atr, "h1_atr_pips": round(spec.to_pips(ctx.atr), 2),

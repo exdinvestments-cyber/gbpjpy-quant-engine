@@ -147,7 +147,7 @@ def stop_quality(ref: dict, adeq: dict, noise: dict, cfg) -> dict:
             "components": {k: round(v, 4) for k, v in comps.items()}}
 
 
-def sanity(ctx, stop: float, cfg, spec, broker) -> list[str]:
+def sanity(ctx, stop: float, cfg, spec, constraints) -> list[str]:
     """Reasons the stop is impossible/nonsensical (empty list = sane)."""
     d = ctx.direction
     bad = []
@@ -160,8 +160,8 @@ def sanity(ctx, stop: float, cfg, spec, broker) -> list[str]:
         return ["STOP_ON_WRONG_SIDE_OF_ENTRY"]
     if spec.to_pips(dist) < cfg.stop.min_stop_pips:
         bad.append("STOP_BELOW_MINIMUM_DISTANCE")
-    if broker.status == "KNOWN" and broker.min_stop_distance_points is not None and \
-            spec.to_points(dist) < broker.min_stop_distance_points:
+    if constraints.status == "KNOWN" and constraints.min_stop_distance_points is not None and \
+            spec.to_points(dist) < constraints.min_stop_distance_points:
         bad.append("STOP_INSIDE_BROKER_STOP_LEVEL")
     if abs(spec.normalize(stop) - stop) > spec.point / 1000:
         bad.append("STOP_NOT_AT_SYMBOL_PRECISION")
