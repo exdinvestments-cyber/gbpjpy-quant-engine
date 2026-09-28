@@ -67,6 +67,14 @@ def main(argv: list[str] | None = None) -> int:
     h.add_argument("--h1-scenario", help="synthetic H1 scenario (engineering tests only)")
     h.add_argument("--out", help="per-H1-bar setup table output (.parquet/.csv/.jsonl)")
 
+    e = sub.add_parser("entry", help="Phase 1D: entry intelligence (analysis only; candidates are NOT orders)")
+    e.add_argument("--h1-csv", help="CSV of H1 bars (timestamp = bar OPEN time; optional spread column)")
+    e.add_argument("--h4-csv", help="CSV of H4 bars; if omitted H4 is aggregated from complete H1 buckets")
+    e.add_argument("--tz", default=None, help="timezone of NAIVE timestamps")
+    e.add_argument("--entry-scenario", help="synthetic entry scenario (engineering tests only)")
+    e.add_argument("--entry-config", help="YAML/JSON entry config override file")
+    e.add_argument("--out", help="per-H1-bar entry table output (.parquet/.csv/.jsonl)")
+
     args = p.parse_args(argv)
     logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
@@ -80,6 +88,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "h1":
         return _run_h1(args)
+    if args.cmd == "entry":
+        return _run_entry(args)
     engine = H4MarketIntelligenceEngine(load_config(args.config))
     result = engine.run(_load(args))
     if args.cmd == "run":
@@ -125,6 +135,33 @@ def _run_h1(args) -> int:
                       "counterfactual": len(res.counterfactual)}, indent=2))
     for q in res.qualified_setups[-3:]:
         print("\n" + explain_h1_setup(res, q["setup_id"]))
+    return 0
+
+
+def _run_entry(args) -> int:
+    from .data.resample import resample_complete
+    from .entry import EntryIntelligenceEngine, explain_entry_candidate, load_entry_config
+    from .h1 import H1SetupEngine
+    from .synthetic_entry import generate_entry_scenario
+
+    if args.entry_scenario:
+        sc = generate_entry_scenario(args.entry_scenario)
+        h1, h4 = sc.h1, sc.h4
+    else:
+        if not args.h1_csv:
+            raise SystemExit("provide --h1-csv or --entry-scenario")
+        h1 = load_csv(args.h1_csv, assume_timezone=args.tz)
+        h4 = load_csv(args.h4_csv, assume_timezone=args.tz) if args.h4_csv else resample_complete(h1, 60, 240)[0]
+    h4_result = H4MarketIntelligenceEngine().run(h4)
+    h1_result = H1SetupEngine().run(h1, h4_result)
+    res = EntryIntelligenceEngine(load_entry_config(args.entry_config)).run(h1_result, h4_result)
+    if args.out:
+        res.export(args.out)
+    print(json.dumps({"h1_bars": len(res.frame), "qualified_setups": len(h1_result.qualified_setups),
+                      "entry_candidates_tracked": len(res.candidates), "accepted": len(res.accepted),
+                      "counterfactual": len(res.counterfactual)}, indent=2))
+    for a in res.accepted[-2:]:
+        print("\n" + explain_entry_candidate(res, a["entry_candidate_id"]))
     return 0
 
 

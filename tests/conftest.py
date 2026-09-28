@@ -51,3 +51,27 @@ def h1_results(engine, h1_engine):
         h4 = engine.run(sc.h4)
         out[name] = (sc, h4, h1_engine.run(sc.h1, h4))
     return out
+
+
+# ---------------------------------------------------------------------------
+# Phase 1D (entry) fixtures - additive
+# ---------------------------------------------------------------------------
+@pytest.fixture(scope="session")
+def entry_engine():
+    from gbpjpy_engine.entry import EntryConfig, EntryIntelligenceEngine
+
+    return EntryIntelligenceEngine(EntryConfig())
+
+
+@pytest.fixture(scope="session")
+def entry_results(engine, h1_engine, entry_engine):
+    """{scenario: (scenario, H4 result, H1 setup result, entry result)} at realistic GBPJPY H1 volatility."""
+    from gbpjpy_engine.synthetic_entry import ENTRY_SCENARIOS, generate_entry_scenario
+
+    out = {}
+    for name in ENTRY_SCENARIOS:
+        sc = generate_entry_scenario(name)
+        h4 = engine.run(sc.h4)
+        h1 = h1_engine.run(sc.h1, h4)
+        out[name] = (sc, h4, h1, entry_engine.run(h1, h4))
+    return out

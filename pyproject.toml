@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gbpjpy-quant-engine"
-version = "0.3.0"
-description = "GBPJPY H4 market intelligence, context and directional permission and H1 setup intelligence (Phases 1A-1C) - analysis only; no execution."
+version = "0.4.0"
+description = "GBPJPY H4 market intelligence, context and directional permission H1 setup intelligence and entry intelligence (Phases 1A-1D) - analysis only; no orders, sizing or broker access."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

@@ -2,17 +2,19 @@
 
 Research-grade algorithmic analysis system dedicated to **GBPJPY**.
 
-**Current phase: 1C — H1 Setup Intelligence Engine**, built on the Phase 1B H4 Context & Directional Permission
-Engine and the Phase 1A/1A.1 H4 Market Intelligence Engine. H1 answers whether a high-quality setup is developing in a
-direction H4 permits; a QUALIFIED setup is not a trade (no entry, stop, target, size or order exists).
+**Current phase: 1D — Entry Intelligence Engine**, built on the Phase 1C H1 Setup Intelligence Engine, the Phase 1B
+H4 Context & Directional Permission Engine and the Phase 1A/1A.1 H4 Market Intelligence Engine. Phase 1D decides
+whether a QUALIFIED H1 setup has developed into a precise, timely and executable ENTRY CANDIDATE (confirmation,
+freshness, chase/extension, bid/ask-aware executable reference, spread, gaps, room, abnormal conditions). An entry
+candidate is **not an order**: no position size, risk amount, stop loss, take profit, order or broker exists.
 
 Phase 1B (H4): It describes the H4 environment (structure hierarchy, legs, displacement, breakout lifecycle,
 liquidity, zones, location, maturity, compression, room to move) and produces a directional permission —
 `ALLOW_LONG`, `ALLOW_SHORT`, `ALLOW_BOTH` or `BLOCK_ALL` — stating what a future H1 engine may *search for*, with
 machine-readable reasons for every decision. Permission is context, not a trade signal.
 
-> This repository contains **no** order placement, broker connectivity, position sizing, H1 entry logic or
-> optimisation. Nothing here has been validated as profitable, and no performance claims are made.
+> This repository contains **no** order placement, broker connectivity, position sizing, stop-loss / take-profit
+> logic or optimisation. Nothing here has been validated as profitable, and no performance claims are made.
 
 ## Quick start
 
@@ -32,6 +34,9 @@ python -m gbpjpy_engine config
 
 # Phase 1C: H1 setup intelligence (H4 aggregated from complete H1 buckets unless --h4-csv is given)
 python -m gbpjpy_engine h1 --h1-csv gbpjpy_h1.csv --tz UTC --out output/h1_setups.parquet
+
+# Phase 1D: entry intelligence (declare the spread units in config/entry_default.yaml: execution.spread_unit)
+python -m gbpjpy_engine entry --h1-csv gbpjpy_h1.csv --tz UTC --out output/entry.parquet
 ```
 
 ```python
@@ -64,14 +69,16 @@ server time to canonical UTC bars before data reaches the engine; no adapter exi
   directional permission (Phase 1B).
 * [`docs/PHASE_1C_H1_SETUP_INTELLIGENCE.md`](docs/PHASE_1C_H1_SETUP_INTELLIGENCE.md) — H1 setup intelligence,
   H4/H1 point-in-time alignment, setup families and lifecycle (Phase 1C).
+* [`docs/PHASE_1D_ENTRY_INTELLIGENCE.md`](docs/PHASE_1D_ENTRY_INTELLIGENCE.md) — entry confirmation, timing,
+  bid/ask executable references, spread, historical execution realism (Phase 1D).
 * [`docs/BROKER_NEUTRAL_INTERFACES.md`](docs/BROKER_NEUTRAL_INTERFACES.md) — future MT4/MT5 adapter contracts
   (specification only).
 
 ## Layout
 
 ```
-src/gbpjpy_engine/   engine package (data, features, classification, context [Phase 1B], h1 [Phase 1C], engine, snapshot, logging, research, cli)
-config/              documented baseline configuration (h4_default.yaml, h1_default.yaml)
+src/gbpjpy_engine/   engine package (data, features, classification, context [Phase 1B], h1 [Phase 1C], entry [Phase 1D], engine, snapshot, logging, research, cli)
+config/              documented baseline configuration (h4_default.yaml, h1_default.yaml, entry_default.yaml)
 docs/                design and methodology documentation
 tests/               unit, anti-look-ahead and synthetic-scenario tests
 ```

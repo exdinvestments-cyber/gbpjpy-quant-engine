@@ -1,0 +1,238 @@
+# GBPJPY Entry Intelligence Engine (Phase 1D) - baseline configuration.
+#
+# Untested engineering baselines - NOT optimised and NOT tuned against profit. An entry candidate is not an order.
+# Load with gbpjpy_engine.entry.load_entry_config('config/entry_default.yaml'); omitted keys keep the defaults.
+
+
+confirmation:
+  # An allowed confirmation family scoring at/above this (but below its policy minimum) puts the candidate in
+  # CONFIRMING (partial evidence).
+  confirming_score: 35.0
+  # Minimum Phase 1A break lifecycle state (CANDIDATE/CONFIRMED/ACCEPTED) for a structural-break confirmation.
+  # CANDIDATE = judged at the break close.
+  structural_min_state: "CANDIDATE"
+  # A structural break at most this many bars old (and after qualification) can confirm.
+  structural_lookback_bars: 3
+  # Range (prior ATR) at/above which a candle without multi-bar support is an isolated giant candle; its
+  # displacement confirmation score is multiplied by 0.6.
+  giant_candle_atr: 2.5
+  # A break older than this cannot be the subject of a break-retest confirmation.
+  retest_max_bars: 24
+  # A low (long) / high (short) within this many ATR of the broken level is a retest.
+  retest_tolerance_atr: 0.3
+  # Penetration back through the level beyond this many ATR = breakout failure.
+  retest_max_penetration_atr: 0.5
+  # A liquidity sweep older than this cannot be reclaimed into a confirmation.
+  sweep_max_bars: 12
+  # Bars used for body progression / structural progress in momentum reacceleration.
+  reacceleration_lookback: 5
+  # An expansion-from-compression event older than this cannot confirm.
+  expansion_max_bars: 6
+  # Expansion bar range (prior ATR) at/above which the expansion is treated as a chase and its confirmation score
+  # is capped at 40.
+  extreme_expansion_atr: 3.0
+  # confirmation_quality = w_primary x best qualifying family + (1 - w_primary) x support from the OTHER evidence
+  # groups (the primary family's own group is excluded: no double counting).
+  w_primary: 0.6
+
+policy:
+  # Per setup family: (setup_family, allowed confirmation families, minimum family score, minimum
+  # confirmation_quality_score). Untested baselines - NOT optimised.
+  policies:
+    - ["TREND_PULLBACK_CONTINUATION", ["STRUCTURAL_BREAK_CONFIRMATION", "DISPLACEMENT_CONFIRMATION", "MOMENTUM_REACCELERATION_CONFIRMATION"], 55.0, 45.0]
+    - ["BREAK_RETEST_CONTINUATION", ["BREAK_RETEST_CONFIRMATION", "DISPLACEMENT_CONFIRMATION", "MOMENTUM_REACCELERATION_CONFIRMATION"], 55.0, 45.0]
+    - ["LIQUIDITY_SWEEP_REVERSAL_IN_H4_DIRECTION", ["SWEEP_RECLAIM_CONFIRMATION", "STRUCTURAL_BREAK_CONFIRMATION"], 55.0, 45.0]
+    - ["COMPRESSION_EXPANSION_IN_H4_DIRECTION", ["COMPRESSION_EXPANSION_CONFIRMATION", "STRUCTURAL_BREAK_CONFIRMATION", "DISPLACEMENT_CONFIRMATION"], 55.0, 45.0]
+
+lifecycle:
+  # A qualified setup without confirmation after this many H1 bars EXPIRES.
+  max_wait_bars: 8
+  # Price moving this many ATR in the setup direction (from the qualification close) without confirmation EXPIRES
+  # the candidate (the move left without it).
+  run_away_atr: 2.0
+  # Executable opportunities (next bar opens) after confirmation before the entry window EXPIRES.
+  window_bars: 2
+  # Wall-clock hours after the confirmation close after which the window EXPIRES.
+  window_max_hours: 3.0
+  # After acceptance, bars for which an ENTRY_CANDIDATE stays available before EXPIRING.
+  candidate_valid_bars: 2
+  # Concurrent tracked candidates per side. Phase 1C allows one active setup per side, so this must be 1 for now;
+  # the tracker is keyed by candidate id to allow more later.
+  max_active_per_side: 1
+
+freshness:
+  # Bars since confirmation mapping the confirmation-age component to fully stale.
+  stale_confirmation_bars: 3
+  # Bars since qualification mapping the qualification-age component to fully stale.
+  stale_qualification_bars: 12
+  # Directional move since the confirmation close (ATR) that is fully stale.
+  stale_move_since_confirmation_atr: 1.0
+  # Directional move since the qualification close (ATR) that is fully stale.
+  stale_move_since_qualification_atr: 2.5
+  # Wall-clock hours since the confirmation close that are fully stale.
+  stale_hours: 4.0
+  # signal_freshness_score at/above which the signal is FRESH.
+  fresh_score: 70.0
+  # Score at/above which the signal is AGING (below: STALE).
+  aging_score: 45.0
+  # Score below which the signal is EXPIRED.
+  stale_score: 25.0
+
+chase:
+  # chase_risk_score at/above which chase risk is MODERATE (below: LOW).
+  moderate_score: 30.0
+  # chase_risk_score at/above which chase risk is HIGH.
+  high_score: 50.0
+  # chase_risk_score at/above which chase risk is EXTREME.
+  extreme_score: 70.0
+  # Chase class (MODERATE/HIGH/EXTREME) at/above which the candidate is REJECTED.
+  reject_at: "HIGH"
+
+extension:
+  # entry_extension_score at/above which the entry is EXTENDED.
+  extended_score: 50.0
+  # entry_extension_score at/above which the entry is OVEREXTENDED (REJECTED).
+  overextended_score: 75.0
+
+execution:
+  # What the OHLC prices represent: 'bid' (typical retail FX charts), 'mid' or 'ask'. LONG executes on the ASK,
+  # SHORT on the BID; the reference is adjusted accordingly.
+  price_basis: "bid"
+  # Units of the canonical 'spread' column as declared by the data adapter: 'pips', 'points' (see points_per_pip)
+  # or 'price'.
+  spread_unit: "pips"
+  # Broker points per pip when spread_unit == 'points' (3-digit JPY quotes: 10).
+  points_per_pip: 10.0
+  # When spread is UNKNOWN the executable reference is computed with this CONSERVATIVE assumed spread and flagged
+  # spread_assumed=true. Zero spread is never assumed.
+  unknown_spread_assumption_pips: 3.0
+
+spread:
+  # Spread (pips) at/below which the absolute test is NORMAL.
+  normal_max_pips: 4.0
+  # Spread at/below which the absolute test is ELEVATED (above: HIGH).
+  elevated_max_pips: 6.0
+  # Spread at/below which the absolute test is HIGH (above: EXTREME).
+  high_max_pips: 10.0
+  # Spread / H1 ATR at/below which the relative test is NORMAL.
+  normal_max_atr_fraction: 0.1
+  # Spread / ATR at/below which the relative test is ELEVATED.
+  elevated_max_atr_fraction: 0.15
+  # Spread / ATR at/below which the relative test is HIGH (above: EXTREME).
+  high_max_atr_fraction: 0.25
+  # Trailing completed bars forming the recent spread distribution.
+  history_bars: 200
+  # Minimum known spreads before the distribution test is used.
+  history_min: 20
+  # Spread / trailing median at/below which the distribution test is NORMAL.
+  normal_max_ratio: 1.5
+  # Spread / median at/below which the distribution test is ELEVATED.
+  elevated_max_ratio: 2.5
+  # Spread / median at/below which the distribution test is HIGH (above: EXTREME).
+  high_max_ratio: 4.0
+  # Spread statuses that REJECT a candidate (SPREAD_TOO_HIGH).
+  block_statuses: ["HIGH", "EXTREME"]
+  # REJECT when spread is UNKNOWN (off by default; UNKNOWN always stays visible).
+  block_unknown: false
+
+gap:
+  # Gap (next open vs confirmation-bar close, ATR) below which there is no gap.
+  small_gap_atr: 0.1
+  # Gap against the thesis at/above which the decision is DEFERRED to re-check structure.
+  defer_gap_atr: 0.5
+  # Gap in either direction at/above which the candidate is REJECTED (price discontinuity).
+  reject_gap_atr: 1.0
+  # Time between a bar close and the next available price above which the market was closed (weekend / holiday /
+  # feed outage): a pre-closure confirmation is not carried over.
+  closure_gap_hours: 2.0
+  # After a closure, this many completed bars must pass before a confirmation counts.
+  reopen_revalidation_bars: 1
+  # Confirmations whose bar closes on Friday at/after this UTC hour are DEFERRED (never accepted into the
+  # weekend).
+  friday_cutoff_hour_utc: 20
+
+deterioration:
+  # Adverse executable-vs-signal difference (ATR) at/below which the window is AVAILABLE.
+  acceptable_atr: 0.25
+  # Adverse difference at/above which the candidate is REJECTED (window EXPIRED by price).
+  reject_atr: 0.6
+
+barriers:
+  # Nearest opposing barrier clusters retained (H1 + H4 combined).
+  max_barriers: 5
+  # Barriers within this many H1 ATR are one cluster (counted once).
+  cluster_tolerance_atr: 0.5
+  # Minimum level_strength_score for an H1 zone to count as a barrier.
+  min_zone_strength: 50.0
+  # Clusters within this distance contribute to barrier_density_score.
+  density_window_atr: 3.0
+  # Weighted cluster sum mapping to barrier_density_score 100.
+  density_norm: 1.5
+  # A multi-member or multi-timeframe cluster within this distance raises BARRIER_CLUSTER_NEARBY.
+  nearby_atr: 1.0
+  # remaining room score below which the candidate is REJECTED.
+  min_remaining_room_score: 30.0
+
+abnormal:
+  # Bar range (prior ATR) where the extreme-candle component starts.
+  range_atr_start: 2.0
+  # Bar range where the extreme-candle component is 1.
+  range_atr_full: 4.0
+  # Short/long ATR ratio where the volatility-expansion component starts.
+  atr_ratio_start: 1.3
+  # ATR ratio where the volatility-expansion component is 1.
+  atr_ratio_full: 2.2
+  # Gap (ATR) where the gap component starts.
+  gap_atr_start: 0.5
+  # Gap where the gap component is 1.
+  gap_atr_full: 2.0
+  # Spread / median where the spread-explosion component starts.
+  spread_ratio_start: 2.0
+  # Spread / median where the spread-explosion component is 1.
+  spread_ratio_full: 5.0
+  # execution_abnormality_score at/above which the decision is DEFERRED.
+  defer_score: 60.0
+  # Score at/above which the candidate is REJECTED.
+  reject_score: 85.0
+
+news:
+  # Currencies whose scheduled events are relevant (a provider may add 'GLOBAL').
+  currencies: ["GBP", "JPY"]
+  # Minimum event importance considered (LOW/MEDIUM/HIGH).
+  min_importance: "HIGH"
+  # An event starting within this many minutes is EVENT_IMMINENT.
+  pre_event_minutes: 30.0
+  # An event that started within this many minutes is EVENT_RECENT.
+  post_event_minutes: 30.0
+  # REJECT when an EVENT_IMMINENT/EVENT_RECENT status exists (off: no validated rule yet).
+  block_on_event: false
+  # REJECT when news_status is UNKNOWN (off by default; UNKNOWN is always recorded).
+  block_unknown: false
+
+scoring:
+  # Entry-quality family weight: CONFIRMATION.
+  w_confirmation: 0.2
+  # Family weight: TIMING (100 - chase risk).
+  w_timing: 0.15
+  # Family weight: FRESHNESS.
+  w_freshness: 0.1
+  # Family weight: PRICE_QUALITY (100 - price deterioration).
+  w_price_quality: 0.1
+  # Family weight: MARKET_QUALITY (execution-time chop/efficiency/volatility/gap).
+  w_market_quality: 0.1
+  # Family weight: STRUCTURAL_INTEGRITY.
+  w_structural_integrity: 0.1
+  # Family weight: ROOM (remaining room at the executable reference).
+  w_room: 0.1
+  # Family weight: EXECUTION_CONDITIONS (spread quality, abnormality).
+  w_execution_conditions: 0.1
+  # Family weight: CONFLICT (100 - entry conflict).
+  w_conflict: 0.05
+  # entry_quality_score *= 1 - conflict_penalty x entry_conflict/100.
+  conflict_penalty: 0.5
+  # entry_quality_score below which the candidate is REJECTED.
+  min_entry_quality: 50.0
+  # entry_conflict_score above which the candidate is REJECTED.
+  max_entry_conflict: 60.0
+  # Spread-quality value used in scores when spread is UNKNOWN (never 100).
+  unknown_spread_quality: 40.0

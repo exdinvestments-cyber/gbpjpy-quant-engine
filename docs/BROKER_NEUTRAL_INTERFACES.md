@@ -7,7 +7,8 @@ depends on MetaTrader 4, MetaTrader 5, MQL4/MQL5, broker credentials or broker-s
 ```
                  GBPJPY STRATEGY CORE
    (market data -> H4 features -> H4 context/permission -> H1 setup intelligence (Phase 1C)
-    -> [future: entry engine, risk engine, execution logic])
+    -> entry intelligence / executable entry candidate (Phase 1D, NOT an order)
+    -> [future: risk engine, execution logic])
                           |
                BROKER-NEUTRAL INTERFACES   (this document; market-data protocols in data/interfaces.py)
                      /                \
@@ -21,6 +22,8 @@ Separation of concerns (target):
 | Market data | canonical bars/ticks, validation | stdlib, numpy, pandas |
 | Feature engineering (Phase 1A) | causal H4 features, structure, zones | market data |
 | Context engine (Phase 1B) | hierarchy, breakouts, liquidity, permission | features |
+| H1 setup intelligence (Phase 1C) | H1 setups up to QUALIFIED | context |
+| Entry intelligence (Phase 1D) | confirmation, timing, spread/bid-ask, executable entry candidate (not an order) | setups + the protocols below |
 | Risk engine (future) | exposure limits, drawdown guards | context, account state (neutral) |
 | Execution engine (future) | order intent → neutral order request | risk, neutral interfaces |
 | Broker/platform adapter (future) | MT4/MT5 translation, sessions, reconnection | neutral interfaces + platform SDK |
@@ -55,6 +58,33 @@ this evidence as optional input and currently runs with none.
 
 Neutral record: `time` (UTC), `bid`, `ask`, `spread_price = ask - bid`, `spread_pips` (using the symbol pip size),
 `source`. Derived from ticks or bar spread; broker-reported "points" must be converted by the adapter.
+
+## Quotes and executable prices
+
+Implemented as the protocol `entry.interfaces.QuoteSource.quote_after(index) -> ExecutableQuote | None`: the first
+price observable after the close of H1 bar `index` (`time` UTC, chart-basis `price`, the `spread` KNOWN at that
+time in declared units, `spread_source`). The historical default `BarOpenQuotes` uses the next bar's open and the
+spread reported by the bar that just closed. A future adapter supplies real quotes (bid/ask); LONG references the
+ASK, SHORT the BID. Missing spread must be delivered as missing - never as zero.
+
+## Slippage
+
+Protocol `entry.interfaces.SlippageModel.estimate(SlippageContext) -> SlippageEstimate(pips | None, status)`.
+Default `UnknownSlippage` (status UNKNOWN). Fixed, spread-dependent, volatility-dependent and empirical models
+apply only researcher-supplied numbers; a future adapter may feed observed broker slippage samples.
+
+## News calendar
+
+Protocol `entry.interfaces.NewsProvider.events(start, end, known_at) -> list[NewsEvent]` with `time` (UTC),
+`currency` (GBP / JPY / GLOBAL), `importance`, `name`, `category`, `known_since`. Events whose schedule was not
+known at `known_at` must not be returned (the core filters them again). Outcomes are not part of the contract.
+No provider exists yet: news status is UNKNOWN.
+
+## Lower-timeframe data
+
+Protocols `entry.interfaces.LowerTimeframeProvider.closed_bars(timeframe, start, end, as_of)` (M15/M5/M1/TICK,
+closed data only) and `IntrabarConfirmationProvider.confirm(direction, level, start, end, as_of)`. Optional
+research inputs; Phase 1D decisions never depend on them.
 
 ## Symbol specification
 

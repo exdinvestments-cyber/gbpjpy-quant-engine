@@ -206,6 +206,68 @@ class ReasonCode(str, Enum):
     H1_BLOCKER_STALE_H4_CONTEXT = "H1_BLOCKER_STALE_H4_CONTEXT"
     H1_BLOCKER_H4_ALIGNMENT_ERROR = "H1_BLOCKER_H4_ALIGNMENT_ERROR"
     H1_BLOCKER_H1_CONTEXT_ERROR = "H1_BLOCKER_H1_CONTEXT_ERROR"
+    # Phase 1D - entry intelligence
+    STRUCTURAL_CONFIRMATION = "STRUCTURAL_CONFIRMATION"
+    DISPLACEMENT_CONFIRMED = "DISPLACEMENT_CONFIRMED"
+    BREAK_RETEST_CONFIRMED = "BREAK_RETEST_CONFIRMED"
+    SWEEP_RECLAIM_CONFIRMED = "SWEEP_RECLAIM_CONFIRMED"
+    MOMENTUM_REACCELERATION = "MOMENTUM_REACCELERATION"
+    COMPRESSION_EXPANSION_CONFIRMED = "COMPRESSION_EXPANSION_CONFIRMED"
+    SIGNAL_FRESH = "SIGNAL_FRESH"
+    SIGNAL_AGING = "SIGNAL_AGING"
+    SIGNAL_STALE = "SIGNAL_STALE"
+    CHASE_RISK_LOW = "CHASE_RISK_LOW"
+    CHASE_RISK_MODERATE = "CHASE_RISK_MODERATE"
+    CHASE_RISK_HIGH = "CHASE_RISK_HIGH"
+    CHASE_RISK_EXTREME = "CHASE_RISK_EXTREME"
+    ENTRY_NOT_EXTENDED = "ENTRY_NOT_EXTENDED"
+    ENTRY_EXTENDED = "ENTRY_EXTENDED"
+    ENTRY_OVEREXTENDED = "ENTRY_OVEREXTENDED"
+    SPREAD_ACCEPTABLE = "SPREAD_ACCEPTABLE"
+    SPREAD_ELEVATED = "SPREAD_ELEVATED"
+    SPREAD_TOO_HIGH = "SPREAD_TOO_HIGH"
+    SPREAD_UNKNOWN = "SPREAD_UNKNOWN"
+    PRICE_DETERIORATION_ACCEPTABLE = "PRICE_DETERIORATION_ACCEPTABLE"
+    PRICE_DETERIORATION_EXCESSIVE = "PRICE_DETERIORATION_EXCESSIVE"
+    ENTRY_WINDOW_DETERIORATING = "ENTRY_WINDOW_DETERIORATING"
+    ENTRY_WINDOW_EXPIRED = "ENTRY_WINDOW_EXPIRED"
+    SUFFICIENT_REMAINING_ROOM = "SUFFICIENT_REMAINING_ROOM"
+    INSUFFICIENT_REMAINING_ROOM = "INSUFFICIENT_REMAINING_ROOM"
+    BARRIER_CLUSTER_NEARBY = "BARRIER_CLUSTER_NEARBY"
+    H4_PERMISSION_VALID = "H4_PERMISSION_VALID"
+    H4_PERMISSION_REVOKED = "H4_PERMISSION_REVOKED"
+    SETUP_STILL_VALID = "SETUP_STILL_VALID"
+    EXECUTION_CONDITIONS_NORMAL = "EXECUTION_CONDITIONS_NORMAL"
+    EXECUTION_CONDITIONS_ABNORMAL = "EXECUTION_CONDITIONS_ABNORMAL"
+    EXECUTION_GAP = "EXECUTION_GAP"
+    NEWS_STATUS_UNKNOWN = "NEWS_STATUS_UNKNOWN"
+    NEWS_CLEAR = "NEWS_CLEAR"
+    NEWS_EVENT_NEARBY = "NEWS_EVENT_NEARBY"
+    SLIPPAGE_UNKNOWN = "SLIPPAGE_UNKNOWN"
+    WEEKEND_REOPEN_REVALIDATION = "WEEKEND_REOPEN_REVALIDATION"
+    PRE_WEEKEND_CUTOFF = "PRE_WEEKEND_CUTOFF"
+    ENTRY_CONFLICT_MOMENTUM_DETERIORATING = "ENTRY_CONFLICT_MOMENTUM_DETERIORATING"
+    ENTRY_CONFLICT_PRICE_EXTENDED = "ENTRY_CONFLICT_PRICE_EXTENDED"
+    ENTRY_CONFLICT_ROOM_COLLAPSED = "ENTRY_CONFLICT_ROOM_COLLAPSED"
+    ENTRY_CONFLICT_POOR_SPREAD = "ENTRY_CONFLICT_POOR_SPREAD"
+    ENTRY_CONFLICT_ABNORMAL_VOLATILITY = "ENTRY_CONFLICT_ABNORMAL_VOLATILITY"
+    ENTRY_CONFLICT_H4_CONTEXT_WEAKENED = "ENTRY_CONFLICT_H4_CONTEXT_WEAKENED"
+    ENTRY_CONFLICT_OPPOSING_BARRIER_CLUSTER = "ENTRY_CONFLICT_OPPOSING_BARRIER_CLUSTER"
+    ENTRY_CONFLICT_TOO_HIGH = "ENTRY_CONFLICT_TOO_HIGH"
+    ENTRY_QUALITY_TOO_LOW = "ENTRY_QUALITY_TOO_LOW"
+    ENTRY_WAITING_FOR_CONFIRMATION = "ENTRY_WAITING_FOR_CONFIRMATION"
+    ENTRY_CONFIRMING = "ENTRY_CONFIRMING"
+    ENTRY_CANDIDATE_ACCEPTED = "ENTRY_CANDIDATE_ACCEPTED"
+    ENTRY_DEFERRED = "ENTRY_DEFERRED"
+    ENTRY_REJECTED = "ENTRY_REJECTED"
+    ENTRY_EXPIRED = "ENTRY_EXPIRED"
+    ENTRY_INVALIDATED = "ENTRY_INVALIDATED"
+    ENTRY_SUPERSEDED = "ENTRY_SUPERSEDED"
+    ENTRY_CONTEXT_ERROR = "ENTRY_CONTEXT_ERROR"
+    NO_CONFIRMATION = "NO_CONFIRMATION"
+    OPPOSING_STRUCTURE_BREAK = "OPPOSING_STRUCTURE_BREAK"
+    CONFIRMATION_LEVEL_LOST = "CONFIRMATION_LEVEL_LOST"
+    STRUCTURAL_INVALIDATION = "STRUCTURAL_INVALIDATION"
 
     def __str__(self) -> str:  # pragma: no cover - cosmetic
         return self.value
@@ -397,6 +459,67 @@ REASON_DESCRIPTIONS: dict[str, str] = {
     "H1_BLOCKER_STALE_H4_CONTEXT": "H1 blocker: latest completed H4 context is too old (missing H4 bars / gap)",
     "H1_BLOCKER_H4_ALIGNMENT_ERROR": "H1 blocker: H4/H1 alignment could not be proven point-in-time safe",
     "H1_BLOCKER_H1_CONTEXT_ERROR": "H1 blocker: H1 evaluation failed (fail-safe)",
+    "STRUCTURAL_CONFIRMATION": "entry confirmed by a meaningful H1 structural break in the permitted direction",
+    "DISPLACEMENT_CONFIRMED": "entry confirmed by multi-candle directional displacement",
+    "BREAK_RETEST_CONFIRMED": "entry confirmed by a controlled retest of a broken level and a directional response",
+    "SWEEP_RECLAIM_CONFIRMED": "entry confirmed by a liquidity sweep, reclaim and directional follow-through",
+    "MOMENTUM_REACCELERATION": "entry confirmed by fading counter momentum and resumed permitted-direction momentum",
+    "COMPRESSION_EXPANSION_CONFIRMED": "entry confirmed by measurable directional expansion out of compression",
+    "SIGNAL_FRESH": "entry signal is fresh",
+    "SIGNAL_AGING": "entry signal is aging",
+    "SIGNAL_STALE": "entry signal is stale (too old or price already moved)",
+    "CHASE_RISK_LOW": "low chase risk at the executable reference",
+    "CHASE_RISK_MODERATE": "moderate chase risk at the executable reference",
+    "CHASE_RISK_HIGH": "high chase risk: price already travelled too far from the setup/confirmation",
+    "CHASE_RISK_EXTREME": "extreme chase risk",
+    "ENTRY_NOT_EXTENDED": "entry would not occur after excessive directional extension",
+    "ENTRY_EXTENDED": "entry would occur after notable directional extension",
+    "ENTRY_OVEREXTENDED": "entry would occur after excessive directional extension (poor timing)",
+    "SPREAD_ACCEPTABLE": "spread known and normal",
+    "SPREAD_ELEVATED": "spread elevated",
+    "SPREAD_TOO_HIGH": "spread demonstrably unacceptable (HIGH/EXTREME)",
+    "SPREAD_UNKNOWN": "spread unavailable - not assumed to be zero",
+    "PRICE_DETERIORATION_ACCEPTABLE": "executable reference close to the signal price",
+    "PRICE_DETERIORATION_EXCESSIVE": "executable reference materially worse than the signal price",
+    "ENTRY_WINDOW_DETERIORATING": "entry window still open but the executable price is deteriorating",
+    "ENTRY_WINDOW_EXPIRED": "entry window elapsed (time, bars or price movement)",
+    "SUFFICIENT_REMAINING_ROOM": "sufficient room to the stacked H1/H4 opposing barriers at the executable reference",
+    "INSUFFICIENT_REMAINING_ROOM": "insufficient room to the nearest opposing barrier cluster at the executable reference",
+    "BARRIER_CLUSTER_NEARBY": "a multi-member or multi-timeframe opposing barrier cluster is nearby",
+    "H4_PERMISSION_VALID": "H4 permission still includes the candidate direction",
+    "H4_PERMISSION_REVOKED": "H4 permission changed (BLOCK_ALL, reversal or stale context) - candidate invalidated",
+    "SETUP_STILL_VALID": "the Phase 1C setup is still QUALIFIED at decision time",
+    "EXECUTION_CONDITIONS_NORMAL": "no abnormal execution conditions detected",
+    "EXECUTION_CONDITIONS_ABNORMAL": "abnormal execution conditions (extreme candle, volatility, gap or spread explosion)",
+    "EXECUTION_GAP": "material gap between the confirmation close and the first executable price",
+    "NEWS_STATUS_UNKNOWN": "no economic-calendar provider: news status UNKNOWN (no events invented)",
+    "NEWS_CLEAR": "no relevant scheduled event near the execution time",
+    "NEWS_EVENT_NEARBY": "relevant scheduled GBP/JPY event near the execution time",
+    "SLIPPAGE_UNKNOWN": "actual live slippage is unknown (no model configured)",
+    "WEEKEND_REOPEN_REVALIDATION": "market closure/reopen: pre-closure evidence is not carried over without revalidation",
+    "PRE_WEEKEND_CUTOFF": "late-Friday confirmation deferred (never accepted into the weekend)",
+    "ENTRY_CONFLICT_MOMENTUM_DETERIORATING": "entry conflict: confirmation exists but H1 momentum opposes it",
+    "ENTRY_CONFLICT_PRICE_EXTENDED": "entry conflict: confirmation exists but price is extended",
+    "ENTRY_CONFLICT_ROOM_COLLAPSED": "entry conflict: remaining room has collapsed",
+    "ENTRY_CONFLICT_POOR_SPREAD": "entry conflict: spread is poor",
+    "ENTRY_CONFLICT_ABNORMAL_VOLATILITY": "entry conflict: abnormal volatility at execution time",
+    "ENTRY_CONFLICT_H4_CONTEXT_WEAKENED": "entry conflict: H4 context weakened since qualification",
+    "ENTRY_CONFLICT_OPPOSING_BARRIER_CLUSTER": "entry conflict: dense opposing barrier cluster nearby",
+    "ENTRY_CONFLICT_TOO_HIGH": "entry conflict above the configured limit",
+    "ENTRY_QUALITY_TOO_LOW": "entry quality below the configured minimum",
+    "ENTRY_WAITING_FOR_CONFIRMATION": "qualified setup waiting for entry confirmation",
+    "ENTRY_CONFIRMING": "entry confirmation developing / complete and awaiting the first executable price",
+    "ENTRY_CANDIDATE_ACCEPTED": "executable entry candidate accepted (NOT an order)",
+    "ENTRY_DEFERRED": "entry decision deferred to the next executable opportunity",
+    "ENTRY_REJECTED": "entry candidate rejected (reason recorded, kept as counterfactual)",
+    "ENTRY_EXPIRED": "entry candidate expired",
+    "ENTRY_INVALIDATED": "entry candidate invalidated",
+    "ENTRY_SUPERSEDED": "entry candidate superseded by a newer qualified setup",
+    "ENTRY_CONTEXT_ERROR": "entry evaluation failed (fail-safe: candidates invalidated)",
+    "NO_CONFIRMATION": "qualified setup never produced a valid entry confirmation",
+    "OPPOSING_STRUCTURE_BREAK": "H1 structure broke against the candidate direction",
+    "CONFIRMATION_LEVEL_LOST": "price closed back through the confirmation reference",
+    "STRUCTURAL_INVALIDATION": "structural premise of the candidate failed",
 }
 
 
