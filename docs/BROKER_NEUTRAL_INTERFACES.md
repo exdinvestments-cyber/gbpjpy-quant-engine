@@ -9,7 +9,8 @@ depends on MetaTrader 4, MetaTrader 5, MQL4/MQL5, broker credentials or broker-s
    (market data -> H4 features -> H4 context/permission -> H1 setup intelligence (Phase 1C)
     -> entry intelligence / executable entry candidate (Phase 1D, NOT an order)
     -> trade construction / proposed trade (Phase 1E, NOT an order: prices and R only)
-    -> [future: account risk engine (volume), execution contract])
+    -> account risk engine / risk-approved trade (Phase 1F, NOT an order: volume and money risk)
+    -> [future: execution engine, execution contract])
                           |
                BROKER-NEUTRAL INTERFACES   (this document; market-data protocols in data/interfaces.py)
                      /                \
@@ -26,7 +27,7 @@ Separation of concerns (target):
 | H1 setup intelligence (Phase 1C) | H1 setups up to QUALIFIED | context |
 | Trade construction (Phase 1E) | structural stop, targets, 1R, gross/net R - no volume or money | entry candidates + the protocols below |
 | Entry intelligence (Phase 1D) | confirmation, timing, spread/bid-ask, executable entry candidate (not an order) | setups + the protocols below |
-| Risk engine (future) | exposure limits, drawdown guards | context, account state (neutral) |
+| Account risk engine (Phase 1F) | sizing, limits, drawdown, margin, halts - no orders | proposals, account state (neutral) |
 | Execution engine (future) | order intent → neutral order request | risk, neutral interfaces |
 | Broker/platform adapter (future) | MT4/MT5 translation, sessions, reconnection | neutral interfaces + platform SDK |
 | Account state / persistence / monitoring (future) | neutral records | neutral interfaces |
@@ -106,6 +107,23 @@ known broker stop level is rejected, never silently widened.
 
 Protocol `trade.interfaces.TransactionCostModel.estimate(symbol, time, direction) -> CostEstimate` (pip-equivalent
 round-turn commission, account-independent). Unknown costs are represented explicitly, never as zero.
+
+## Account risk adapter requirements
+
+Phase 1F (`risk.AccountRiskEngine`) consumes, and a future adapter must supply:
+
+* **Account state** (`risk.account.AccountState`, via `AccountStateSource`): account id, currency (any ISO code),
+  balance, equity, free and used margin, margin level, floating P&L, open positions (id, direction, volume, entry,
+  stop, current price, floating P&L, linked proposal ids), provider-pending risk, leverage where known, timestamp (UTC).
+* **Contract specifications** (`risk.instruments.ContractSpec`, via `ContractSpecSource`): base/quote currency,
+  contract size, digits, point, pip size, minimum/maximum volume, volume step, minimum stop distance, margin mode.
+* **Conversion rates** (`risk.fx.RateProvider`): timestamped quotes; the core never guesses a missing rate.
+* **Margin information** (`risk.margin.MarginModel`): the provider's margin requirement where the notional/leverage
+  approximation is not reliable.
+* **Position state**: partial closes and stop changes (`StopChange`), so remaining risk can be recomputed.
+* **Closed-trade results** (`ClosedTradeResult`: id, realised P&L, fees, swap, close time, close reason) and balance
+  adjustments (`BalanceAdjustment`: deposits, withdrawals, corrections).
+* **Order state** - for the future execution engine only; Phase 1F places nothing.
 
 ## Symbol specification
 

@@ -2,7 +2,12 @@
 
 Research-grade algorithmic analysis system dedicated to **GBPJPY**.
 
-**Current phase: 1E — Trade Construction Engine**: accepted entry candidates become PROPOSED TRADES (structural
+**Current phase: 1F — Account Risk Engine**: proposed trades become RISK-APPROVED TRADES (exact GBPJPY pip value in
+any account currency, round-down volume, daily/weekly/monthly budgets, drawdown tiers, margin safety, kill switch,
+persistent and concurrency-safe risk state). A risk-approved trade is **not an order**; quality scores and profit
+objectives are not risk inputs.
+
+Phase 1E — Trade Construction Engine: accepted entry candidates become PROPOSED TRADES (structural
 invalidation stop first, structural targets second, 1R / gross / cost-adjusted R last; no R:R is manufactured). A
 proposed trade is **not an order** and contains no volume or monetary risk. Built on the Phase 1D Entry Intelligence
 Engine, the Phase 1C H1 Setup Intelligence Engine, the Phase 1B
@@ -79,14 +84,16 @@ server time to canonical UTC bars before data reaches the engine; no adapter exi
   bid/ask executable references, spread, historical execution realism (Phase 1D).
 * [`docs/PHASE_1E_TRADE_CONSTRUCTION.md`](docs/PHASE_1E_TRADE_CONSTRUCTION.md) — structural stops, targets, R and
   costs, anti-R:R-manipulation, account separation (Phase 1E).
+* [`docs/PHASE_1F_ACCOUNT_RISK.md`](docs/PHASE_1F_ACCOUNT_RISK.md) — account risk, pip value, sizing, limits,
+  persistence, firewalls (Phase 1F).
 * [`docs/BROKER_NEUTRAL_INTERFACES.md`](docs/BROKER_NEUTRAL_INTERFACES.md) — future MT4/MT5 adapter contracts
   (specification only).
 
 ## Layout
 
 ```
-src/gbpjpy_engine/   engine package (data, features, classification, context [Phase 1B], h1 [Phase 1C], entry [Phase 1D], trade [Phase 1E], engine, snapshot, logging, research, cli)
-config/              documented baseline configuration (h4_default.yaml, h1_default.yaml, entry_default.yaml, trade_default.yaml)
+src/gbpjpy_engine/   engine package (data, features, classification, context [Phase 1B], h1 [Phase 1C], entry [Phase 1D], trade [Phase 1E], risk [Phase 1F], engine, snapshot, logging, research, cli)
+config/              documented baseline configuration (h4_default.yaml, h1_default.yaml, entry_default.yaml, trade_default.yaml, risk_default.yaml)
 docs/                design and methodology documentation
 tests/               unit, anti-look-ahead and synthetic-scenario tests
 ```

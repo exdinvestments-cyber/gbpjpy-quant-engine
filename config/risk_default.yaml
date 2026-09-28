@@ -1,0 +1,120 @@
+# GBPJPY Account Risk Engine (Phase 1F) - baseline risk policy.
+#
+# EVERY VALUE IS CONFIGURATION, NOT VALIDATED EDGE. Conservative engineering defaults, not chosen from profitability.
+# There is deliberately no profit-objective field. Load with gbpjpy_engine.risk.load_risk_policy(path).
+
+
+sizing:
+  # Risk per trade as % of the sizing capital (baseline). [CONFIGURATION - NOT VALIDATED EDGE]
+  base_risk_percent: 0.5
+  # HARD ceiling per trade (% of sizing capital). Nothing can exceed it. [CONFIGURATION - NOT VALIDATED EDGE]
+  max_single_trade_risk_percent: 1.0
+  # Sizing capital: BALANCE, EQUITY or LOWER_OF_BALANCE_OR_EQUITY (default: the lower of the two - floating profit
+  # is never sized on, floating loss always is). [CONFIGURATION - NOT VALIDATED EDGE]
+  basis: "LOWER_OF_BALANCE_OR_EQUITY"
+  # Risk-side slippage allowance added to the stop distance when no better slippage data exists (an assumption,
+  # not observed slippage). [CONFIGURATION - NOT VALIDATED EDGE]
+  stop_slippage_allowance_pips: 1.0
+  # Entry slippage allowance added to the risk distance. [CONFIGURATION - NOT VALIDATED EDGE]
+  entry_slippage_allowance_pips: 0.5
+  # Commission assumption (pip-equivalent) when no commission model exists - never zero. [CONFIGURATION - NOT
+  # VALIDATED EDGE]
+  assumed_commission_pips_round_turn: 0.5
+  # Absolute numeric tolerance (account currency) for actual <= permitted. [CONFIGURATION - NOT VALIDATED EDGE]
+  rounding_tolerance: "0.00000001"
+
+limits:
+  # Daily loss budget (% of the day's reference capital) incl. open and reserved risk. [CONFIGURATION - NOT
+  # VALIDATED EDGE]
+  daily_loss_percent: 2.0
+  # Weekly loss budget (% of the week's reference capital). [CONFIGURATION - NOT VALIDATED EDGE]
+  weekly_loss_percent: 4.0
+  # Monthly loss budget (% of the month's reference capital). [CONFIGURATION - NOT VALIDATED EDGE]
+  monthly_loss_percent: 8.0
+  # Enable the monthly loss budget. [CONFIGURATION - NOT VALIDATED EDGE]
+  monthly_enabled: true
+  # Maximum open + reserved + new risk across the account (%). [CONFIGURATION - NOT VALIDATED EDGE]
+  max_aggregate_risk_percent: 1.5
+  # Maximum GBPJPY open + reserved + new risk (%). [CONFIGURATION - NOT VALIDATED EDGE]
+  max_symbol_risk_percent: 1.5
+  # Maximum simultaneous GBPJPY positions + reservations. [CONFIGURATION - NOT VALIDATED EDGE]
+  max_symbol_positions: 2
+  # Maximum simultaneous GBPJPY positions + reservations in one direction. [CONFIGURATION - NOT VALIDATED EDGE]
+  max_same_direction_positions: 1
+  # Allow a new trade opposite to an open GBPJPY position (hedging). [CONFIGURATION - NOT VALIDATED EDGE]
+  allow_opposite_direction: false
+  # Adding to an existing same-direction position. OFF: requires separate empirical validation. Adding to a LOSING
+  # position is always prohibited. [CONFIGURATION - NOT VALIDATED EDGE]
+  pyramiding_enabled: false
+  # When aggregate/symbol caps bind: REDUCE the new exposure to what remains, or REJECT. Never exceed.
+  # [CONFIGURATION - NOT VALIDATED EDGE]
+  aggregate_policy: "REDUCE"
+
+consecutive:
+  # After this many consecutive closed losses permitted risk is multiplied by reduce_factor (0 disables). Never an
+  # increase. [CONFIGURATION - NOT VALIDATED EDGE]
+  reduce_after: 3
+  # Multiplier (<= 1) applied after reduce_after consecutive losses. [CONFIGURATION - NOT VALIDATED EDGE]
+  reduce_factor: 0.5
+  # After this many consecutive closed losses new trades are PAUSED (0 disables). [CONFIGURATION - NOT VALIDATED
+  # EDGE]
+  pause_after: 5
+  # PAUSE lasts until NEXT_TRADING_DAY or MANUAL_RESET (no psychological timing assumed). [CONFIGURATION - NOT
+  # VALIDATED EDGE]
+  pause_until: "NEXT_TRADING_DAY"
+
+drawdown:
+  # (state, equity drawdown % from the high-water mark at/above which it applies, risk multiplier <= 1).
+  # [CONFIGURATION - NOT VALIDATED EDGE]
+  tiers:
+    - ["NORMAL", 0.0, 1.0]
+    - ["CAUTION", 5.0, 0.75]
+    - ["DEFENSIVE", 10.0, 0.5]
+    - ["HALT", 15.0, 0.0]
+  # Entering the HALT tier sets the global state to HALTED (manual reset required). [CONFIGURATION - NOT VALIDATED
+  # EDGE]
+  halt_on_critical: true
+
+margin:
+  # Reject when required margin cannot be estimated reliably. [CONFIGURATION - NOT VALIDATED EDGE]
+  require_margin_known: true
+  # Free margin after the trade must stay >= this % of equity. [CONFIGURATION - NOT VALIDATED EDGE]
+  min_free_margin_after_percent_of_equity: 50.0
+  # Margin level (equity / used margin) after the trade must be >= this. [CONFIGURATION - NOT VALIDATED EDGE]
+  min_post_trade_margin_level_percent: 300.0
+  # When margin binds: REJECT, or REDUCE volume to what margin safely allows. [CONFIGURATION - NOT VALIDATED EDGE]
+  margin_policy: "REJECT"
+
+data:
+  # Account snapshots older than this are stale (rejected). [CONFIGURATION - NOT VALIDATED EDGE]
+  account_max_age_seconds: 300.0
+  # Conversion rates older than this are stale (rejected). [CONFIGURATION - NOT VALIDATED EDGE]
+  rate_max_age_seconds: 7200.0
+  # Timezone of the trading-day roll (never the machine clock). [CONFIGURATION - NOT VALIDATED EDGE]
+  timezone: "America/New_York"
+  # Local hour at which the trading day rolls. [CONFIGURATION - NOT VALIDATED EDGE]
+  rollover_hour: 17
+  # An invalid account snapshot HALTS new risk approvals. [CONFIGURATION - NOT VALIDATED EDGE]
+  halt_on_invalid_account: true
+  # An invalid contract specification HALTS new risk approvals. [CONFIGURATION - NOT VALIDATED EDGE]
+  halt_on_invalid_symbol: true
+  # Reaching the daily budget also HALTS (otherwise it only blocks new trades that day). [CONFIGURATION - NOT
+  # VALIDATED EDGE]
+  halt_on_daily_limit: false
+  # An external ruleset breach HALTS new risk approvals. [CONFIGURATION - NOT VALIDATED EDGE]
+  halt_on_external_breach: true
+
+events:
+  # ALLOW, DISALLOW, CLOSE_BEFORE_WEEKEND or UNKNOWN_EXTERNAL_POLICY (the last three block new approvals inside
+  # weekend_cutoff_hours before the Friday roll). [CONFIGURATION - NOT VALIDATED EDGE]
+  weekend: "ALLOW"
+  # Hours before the Friday roll inside which blocking weekend policies apply. [CONFIGURATION - NOT VALIDATED
+  # EDGE]
+  weekend_cutoff_hours: 4.0
+  # ALLOW, BLOCK_BEFORE, BLOCK_AFTER, REDUCE_RISK or UNKNOWN (Phase 1D news status). [CONFIGURATION - NOT
+  # VALIDATED EDGE]
+  news: "ALLOW"
+  # Risk multiplier (<= 1) for REDUCE_RISK around relevant GBP/JPY events. [CONFIGURATION - NOT VALIDATED EDGE]
+  news_reduce_factor: 0.5
+  # Block when news status is UNKNOWN (no provider exists yet). [CONFIGURATION - NOT VALIDATED EDGE]
+  block_unknown_news: false

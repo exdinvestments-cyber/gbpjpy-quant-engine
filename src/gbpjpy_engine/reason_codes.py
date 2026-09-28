@@ -314,6 +314,57 @@ class ReasonCode(str, Enum):
     THESIS_FAILED_BEFORE_ENTRY = "THESIS_FAILED_BEFORE_ENTRY"
     NEWS_UNKNOWN = "NEWS_UNKNOWN"
     ENTRY_CANDIDATE_NOT_VALID = "ENTRY_CANDIDATE_NOT_VALID"
+    # Phase 1F - account risk
+    PROPOSAL_VALID = "PROPOSAL_VALID"
+    PROPOSAL_INVALID = "PROPOSAL_INVALID"
+    PROPOSAL_NO_LONGER_VALID = "PROPOSAL_NO_LONGER_VALID"
+    PROPOSAL_GEOMETRY_CHANGED = "PROPOSAL_GEOMETRY_CHANGED"
+    ACCOUNT_STATE_VALID = "ACCOUNT_STATE_VALID"
+    ACCOUNT_STATE_INVALID = "ACCOUNT_STATE_INVALID"
+    ACCOUNT_STATE_FROM_FUTURE = "ACCOUNT_STATE_FROM_FUTURE"
+    ACCOUNT_STATE_STALE = "ACCOUNT_STATE_STALE"
+    SYMBOL_SPEC_VALID = "SYMBOL_SPEC_VALID"
+    SYMBOL_SPEC_INVALID = "SYMBOL_SPEC_INVALID"
+    CONVERSION_RATE_VALID = "CONVERSION_RATE_VALID"
+    CONVERSION_RATE_MISSING = "CONVERSION_RATE_MISSING"
+    CONVERSION_RATE_STALE = "CONVERSION_RATE_STALE"
+    GLOBAL_HALT = "GLOBAL_HALT"
+    GLOBAL_PAUSE = "GLOBAL_PAUSE"
+    DRAWDOWN_NORMAL = "DRAWDOWN_NORMAL"
+    DRAWDOWN_CAUTION = "DRAWDOWN_CAUTION"
+    DRAWDOWN_DEFENSIVE = "DRAWDOWN_DEFENSIVE"
+    DRAWDOWN_HALT = "DRAWDOWN_HALT"
+    OPEN_RISK_UNKNOWN = "OPEN_RISK_UNKNOWN"
+    DAILY_LIMIT_OK = "DAILY_LIMIT_OK"
+    DAILY_LIMIT_REACHED = "DAILY_LIMIT_REACHED"
+    WEEKLY_LIMIT_OK = "WEEKLY_LIMIT_OK"
+    WEEKLY_LIMIT_REACHED = "WEEKLY_LIMIT_REACHED"
+    MONTHLY_LIMIT_OK = "MONTHLY_LIMIT_OK"
+    MONTHLY_LIMIT_REACHED = "MONTHLY_LIMIT_REACHED"
+    CONSECUTIVE_LOSS_LIMIT_OK = "CONSECUTIVE_LOSS_LIMIT_OK"
+    CONSECUTIVE_LOSS_REDUCED = "CONSECUTIVE_LOSS_REDUCED"
+    CONSECUTIVE_LOSS_PAUSE = "CONSECUTIVE_LOSS_PAUSE"
+    DUPLICATE_EXPOSURE = "DUPLICATE_EXPOSURE"
+    ADD_TO_LOSER_PROHIBITED = "ADD_TO_LOSER_PROHIBITED"
+    PYRAMIDING_DISABLED = "PYRAMIDING_DISABLED"
+    SYMBOL_EXPOSURE_LIMIT = "SYMBOL_EXPOSURE_LIMIT"
+    EXPOSURE_OK = "EXPOSURE_OK"
+    EXTERNAL_POLICY_OK = "EXTERNAL_POLICY_OK"
+    EXTERNAL_POLICY_BLOCK = "EXTERNAL_POLICY_BLOCK"
+    WEEKEND_POLICY_BLOCK = "WEEKEND_POLICY_BLOCK"
+    NEWS_POLICY_BLOCK = "NEWS_POLICY_BLOCK"
+    AGGREGATE_RISK_OK = "AGGREGATE_RISK_OK"
+    AGGREGATE_RISK_EXCEEDED = "AGGREGATE_RISK_EXCEEDED"
+    TRADE_RISK_WITHIN_LIMIT = "TRADE_RISK_WITHIN_LIMIT"
+    TRADE_RISK_EXCEEDS_LIMIT = "TRADE_RISK_EXCEEDS_LIMIT"
+    VOLUME_ROUNDED_DOWN = "VOLUME_ROUNDED_DOWN"
+    BROKER_MIN_VOLUME_TOO_LARGE = "BROKER_MIN_VOLUME_TOO_LARGE"
+    MARGIN_OK = "MARGIN_OK"
+    MARGIN_INSUFFICIENT = "MARGIN_INSUFFICIENT"
+    MARGIN_UNKNOWN = "MARGIN_UNKNOWN"
+    RISK_APPROVED = "RISK_APPROVED"
+    RISK_REJECTED = "RISK_REJECTED"
+    RISK_STATE_CORRUPTED = "RISK_STATE_CORRUPTED"
 
     def __str__(self) -> str:  # pragma: no cover - cosmetic
         return self.value
@@ -611,6 +662,56 @@ REASON_DESCRIPTIONS: dict[str, str] = {
     "THESIS_FAILED_BEFORE_ENTRY": "thesis re-check failed immediately before finalising",
     "NEWS_UNKNOWN": "news status unknown - no safety is assumed",
     "ENTRY_CANDIDATE_NOT_VALID": "the entry candidate was not valid at the proposal time",
+    "PROPOSAL_VALID": "Phase 1E proposal revalidated for risk approval",
+    "PROPOSAL_INVALID": "proposal unusable for risk approval (geometry, symbol, decision or time)",
+    "PROPOSAL_NO_LONGER_VALID": "Phase 1E proposal expired/invalidated or H4 permission changed before risk approval",
+    "PROPOSAL_GEOMETRY_CHANGED": "proposal geometry differs from the Phase 1E construction record",
+    "ACCOUNT_STATE_VALID": "account snapshot valid and fresh",
+    "ACCOUNT_STATE_INVALID": "account snapshot invalid (fail closed)",
+    "ACCOUNT_STATE_FROM_FUTURE": "account snapshot newer than the decision time (look-ahead refused)",
+    "ACCOUNT_STATE_STALE": "account snapshot older than the configured maximum age",
+    "SYMBOL_SPEC_VALID": "contract specification valid",
+    "SYMBOL_SPEC_INVALID": "contract specification invalid (fail closed)",
+    "CONVERSION_RATE_VALID": "timestamped conversion rate(s) available",
+    "CONVERSION_RATE_MISSING": "required conversion rate unavailable (fail closed)",
+    "CONVERSION_RATE_STALE": "required conversion rate stale (fail closed)",
+    "GLOBAL_HALT": "global risk state HALTED - no new risk approvals",
+    "GLOBAL_PAUSE": "global risk state PAUSED - no new risk approvals",
+    "DRAWDOWN_NORMAL": "drawdown tier NORMAL",
+    "DRAWDOWN_CAUTION": "drawdown tier CAUTION (reduced permitted risk)",
+    "DRAWDOWN_DEFENSIVE": "drawdown tier DEFENSIVE (further reduced permitted risk)",
+    "DRAWDOWN_HALT": "drawdown tier HALT (no new risk)",
+    "OPEN_RISK_UNKNOWN": "open-position risk cannot be bounded (fail closed)",
+    "DAILY_LIMIT_OK": "daily loss budget available",
+    "DAILY_LIMIT_REACHED": "daily loss budget exhausted - block new trades",
+    "WEEKLY_LIMIT_OK": "weekly loss budget available",
+    "WEEKLY_LIMIT_REACHED": "weekly loss budget exhausted - block new trades",
+    "MONTHLY_LIMIT_OK": "monthly loss budget available",
+    "MONTHLY_LIMIT_REACHED": "monthly loss budget exhausted - block new trades",
+    "CONSECUTIVE_LOSS_LIMIT_OK": "consecutive-loss policy: normal",
+    "CONSECUTIVE_LOSS_REDUCED": "consecutive-loss policy: reduced permitted risk (never increased)",
+    "CONSECUTIVE_LOSS_PAUSE": "consecutive-loss policy: trading paused",
+    "DUPLICATE_EXPOSURE": "same setup/entry/proposal already has exposure",
+    "ADD_TO_LOSER_PROHIBITED": "adding to a losing position is prohibited",
+    "PYRAMIDING_DISABLED": "pyramiding disabled - existing same-direction exposure",
+    "SYMBOL_EXPOSURE_LIMIT": "GBPJPY position/direction exposure limit reached",
+    "EXPOSURE_OK": "GBPJPY exposure within limits",
+    "EXTERNAL_POLICY_OK": "external ruleset permits the trade",
+    "EXTERNAL_POLICY_BLOCK": "external ruleset blocks the trade",
+    "WEEKEND_POLICY_BLOCK": "weekend holding policy blocks new risk near the weekend close",
+    "NEWS_POLICY_BLOCK": "news risk policy blocks the trade",
+    "AGGREGATE_RISK_OK": "aggregate open + reserved + new risk within the cap",
+    "AGGREGATE_RISK_EXCEEDED": "aggregate risk cap would be exceeded",
+    "TRADE_RISK_WITHIN_LIMIT": "actual post-rounding risk within the permitted risk",
+    "TRADE_RISK_EXCEEDS_LIMIT": "trade risk would exceed the permitted limit",
+    "VOLUME_ROUNDED_DOWN": "volume floored to the volume step (never rounded up)",
+    "BROKER_MIN_VOLUME_TOO_LARGE": "minimum volume would risk more than permitted",
+    "MARGIN_OK": "post-trade free margin and margin level within safety limits",
+    "MARGIN_INSUFFICIENT": "post-trade margin safety would be breached",
+    "MARGIN_UNKNOWN": "required margin cannot be estimated reliably",
+    "RISK_APPROVED": "risk-approved trade (NOT an order)",
+    "RISK_REJECTED": "risk approval rejected (reason recorded)",
+    "RISK_STATE_CORRUPTED": "persisted risk state corrupted - halted (fail closed)",
 }
 
 
