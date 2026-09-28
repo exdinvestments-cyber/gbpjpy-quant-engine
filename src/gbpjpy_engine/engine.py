@@ -33,7 +33,8 @@ from .features.context import (
     time_features,
 )
 from .context.engine import ContextEngine
-from .features.levels import Zone, compute_levels
+from .features.levels import Zone
+from .features.pipeline import _BENIGN_FLAGS, _ERROR_TYPES, _bar_status, compute_feature_frame  # noqa: F401
 from .features.momentum import momentum_features
 from .features.structure import StructureResult, compute_structure
 from .features.trend import adx_features, trend_features
@@ -142,43 +143,8 @@ class H4MarketIntelligenceEngine:
             logger.error("continuing despite data errors because fail_on_data_errors=False: %s", report.counts())
 
         df = bars.reset_index(drop=True)
-        tf = pd.Timedelta(minutes=cfg.data.timeframe_minutes)
-
-        vol = volatility_features(df, cfg.volatility)
-        atr_s = vol["atr"]
-        candles = candle_features(df, vol["atr_prev"], cfg.candle)
-        shock = shock_features(df, vol, candles, cfg.shock)
-        trend = trend_features(df["close"], atr_s, cfg.trend)
-        adx_df = adx_features(df, cfg.adx)
-        mom = momentum_features(df, atr_s, cfg.momentum)
-        eff = efficiency_features(df["close"], cfg.efficiency)
-
-        W = cfg.structure.quality_window_bars
-        overlap_mean = candles["overlap_prev"].rolling(W, min_periods=5).mean()
-        wick_mean = candles["wick_ratio"].rolling(W, min_periods=5).mean()
-        structure = compute_structure(df, atr_s, overlap_mean, wick_mean, cfg.swing, cfg.structure, tf)
-        chop = chop_features(df, atr_s, trend, adx_df, candles, eff, structure.frame, cfg.chop)
-        levels, zones_by_bar, zone_book = compute_levels(df, atr_s, structure, cfg.levels, return_book=True)
-        rn = round_number_features(df["close"], atr_s, cfg.round_numbers, cfg.data)
-        rloc = range_location_features(df, cfg.range_location)
-        ext = extension_features(df, trend, atr_s, cfg.extension)
-        sess = session_features(df["timestamp"], cfg.sessions, tf)
-        tfeat = time_features(df["timestamp"])
-
-        base = df.copy()
-        base.insert(1, "available_at", df["timestamp"] + tf)
-        base.insert(0, "symbol", cfg.data.symbol)
-        feats = pd.concat(
-            [base, candles, vol, shock, trend, adx_df, mom, eff, structure.frame, chop, levels, rn, rloc, ext, sess, tfeat],
-            axis=1,
-        )
-        feats = feats.loc[:, ~feats.columns.duplicated()].copy()
-
-        warm = np.arange(len(df)) >= cfg.engine.warmup_bars
-        feats["warmup_complete"] = warm
-        flags = report.bar_flags if report.bar_flags else [[] for _ in range(len(df))]
-        feats["data_quality_flags"] = [list(f) for f in flags]
-        feats["data_quality_status"] = [_bar_status(fl) for fl in flags]
+        feats, structure, zones_by_bar, zone_book = compute_feature_frame(df, cfg, report)
+        warm = feats["warmup_complete"].to_numpy()
 
         regimes: list[RegimeResult] = []
         biases: list[BiasResult] = []
@@ -226,22 +192,6 @@ class H4MarketIntelligenceEngine:
         # Phase 1B: context & directional permission, layered on top of the Phase 1A/1A.1 result
         result.context = ContextEngine(cfg).run(result, as_of=as_of)
         return result
-
-
-_ERROR_TYPES = {
-    "MISSING_PRICE", "NONPOSITIVE_PRICE", "INVALID_OHLC", "DUPLICATE_TIMESTAMP", "OUT_OF_ORDER", "NEGATIVE_SPREAD",
-}
-# Warnings that only say volume/spread are unavailable do not degrade price-based features.
-_BENIGN_FLAGS = {"MISSING_VOLUME", "MISSING_SPREAD", "ZERO_VOLUME"}
-
-
-def _bar_status(flags: list[str]) -> str:
-    """ERROR > WARNING (price/time integrity concern) > INFO (only volume/spread unavailable) > OK."""
-    if any(f in _ERROR_TYPES for f in flags):
-        return "ERROR"
-    if any(f not in _BENIGN_FLAGS for f in flags):
-        return "WARNING"
-    return "INFO" if flags else "OK"
 
 
 def _merge_codes(r: RegimeResult, b: BiasResult, row: dict) -> list[str]:

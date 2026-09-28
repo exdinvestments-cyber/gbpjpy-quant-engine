@@ -6,7 +6,8 @@ depends on MetaTrader 4, MetaTrader 5, MQL4/MQL5, broker credentials or broker-s
 
 ```
                  GBPJPY STRATEGY CORE
-   (market data model -> features -> context -> [future: risk, H1, execution logic])
+   (market data -> H4 features -> H4 context/permission -> H1 setup intelligence (Phase 1C)
+    -> [future: entry engine, risk engine, execution logic])
                           |
                BROKER-NEUTRAL INTERFACES   (this document; market-data protocols in data/interfaces.py)
                      /                \

@@ -29,3 +29,25 @@ def scenario_results(engine):
         sc = generate_scenario(name)
         out[name] = (sc, engine.run(sc.bars))
     return out
+
+
+# ---------------------------------------------------------------------------
+# Phase 1C (H1) fixtures - additive
+# ---------------------------------------------------------------------------
+@pytest.fixture(scope="session")
+def h1_engine():
+    from gbpjpy_engine.h1 import H1Config, H1SetupEngine
+
+    return H1SetupEngine(H1Config())
+
+
+@pytest.fixture(scope="session")
+def h1_results(engine, h1_engine):
+    from gbpjpy_engine.synthetic_h1 import H1_SCENARIOS, generate_h1_scenario
+
+    out = {}
+    for name in H1_SCENARIOS:
+        sc = generate_h1_scenario(name)
+        h4 = engine.run(sc.h4)
+        out[name] = (sc, h4, h1_engine.run(sc.h1, h4))
+    return out

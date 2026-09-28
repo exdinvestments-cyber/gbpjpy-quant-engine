@@ -154,6 +154,58 @@ class ReasonCode(str, Enum):
     BLOCKER_SEVERE_CHOP = "BLOCKER_SEVERE_CHOP"
     BLOCKER_UNCLASSIFIABLE_STRUCTURE = "BLOCKER_UNCLASSIFIABLE_STRUCTURE"
     BLOCKER_CONTEXT_ERROR = "BLOCKER_CONTEXT_ERROR"
+    # ---- Phase 1C: H1 setup intelligence ----
+    H4_LONG_PERMISSION = "H4_LONG_PERMISSION"
+    H4_SHORT_PERMISSION = "H4_SHORT_PERMISSION"
+    H1_HEALTHY_PULLBACK = "H1_HEALTHY_PULLBACK"
+    H1_DEEP_PULLBACK = "H1_DEEP_PULLBACK"
+    H1_PULLBACK_STRUCTURE_DAMAGED = "H1_PULLBACK_STRUCTURE_DAMAGED"
+    H1_COUNTER_MOMENTUM_DETERIORATING = "H1_COUNTER_MOMENTUM_DETERIORATING"
+    H1_BULLISH_TRANSITION = "H1_BULLISH_TRANSITION"
+    H1_BEARISH_TRANSITION = "H1_BEARISH_TRANSITION"
+    H1_BULLISH_RECLAIM = "H1_BULLISH_RECLAIM"
+    H1_BEARISH_RECLAIM = "H1_BEARISH_RECLAIM"
+    H1_BULLISH_DISPLACEMENT = "H1_BULLISH_DISPLACEMENT"
+    H1_BEARISH_DISPLACEMENT = "H1_BEARISH_DISPLACEMENT"
+    H1_DOWNSIDE_SWEEP = "H1_DOWNSIDE_SWEEP"
+    H1_UPSIDE_SWEEP = "H1_UPSIDE_SWEEP"
+    H1_SUPPORT_REACTION = "H1_SUPPORT_REACTION"
+    H1_RESISTANCE_REACTION = "H1_RESISTANCE_REACTION"
+    H4_H1_ZONE_CONFLUENCE = "H4_H1_ZONE_CONFLUENCE"
+    SUFFICIENT_UPSIDE_ROOM = "SUFFICIENT_UPSIDE_ROOM"
+    SUFFICIENT_DOWNSIDE_ROOM = "SUFFICIENT_DOWNSIDE_ROOM"
+    INSUFFICIENT_UPSIDE_ROOM = "INSUFFICIENT_UPSIDE_ROOM"
+    INSUFFICIENT_DOWNSIDE_ROOM = "INSUFFICIENT_DOWNSIDE_ROOM"
+    H1_HIGH_CHOP = "H1_HIGH_CHOP"
+    H1_HIGH_CONFLICT = "H1_HIGH_CONFLICT"
+    SETUP_WATCHING = "SETUP_WATCHING"
+    SETUP_DEVELOPING = "SETUP_DEVELOPING"
+    SETUP_QUALIFIED = "SETUP_QUALIFIED"
+    SETUP_INVALIDATED = "SETUP_INVALIDATED"
+    SETUP_EXPIRED = "SETUP_EXPIRED"
+    SETUP_FAMILY_TREND_PULLBACK_CONTINUATION = "SETUP_FAMILY_TREND_PULLBACK_CONTINUATION"
+    SETUP_FAMILY_BREAK_RETEST_CONTINUATION = "SETUP_FAMILY_BREAK_RETEST_CONTINUATION"
+    SETUP_FAMILY_LIQUIDITY_SWEEP_REVERSAL_IN_H4_DIRECTION = "SETUP_FAMILY_LIQUIDITY_SWEEP_REVERSAL_IN_H4_DIRECTION"
+    SETUP_FAMILY_COMPRESSION_EXPANSION_IN_H4_DIRECTION = "SETUP_FAMILY_COMPRESSION_EXPANSION_IN_H4_DIRECTION"
+    H1_CONFLICT_H1_STRONGLY_OPPOSED = "H1_CONFLICT_H1_STRONGLY_OPPOSED"
+    H1_CONFLICT_H1_HIGH_CHOP = "H1_CONFLICT_H1_HIGH_CHOP"
+    H1_CONFLICT_TRIGGER_UNDER_BARRIER = "H1_CONFLICT_TRIGGER_UNDER_BARRIER"
+    H1_CONFLICT_SWEEP_WITHOUT_FOLLOW_THROUGH = "H1_CONFLICT_SWEEP_WITHOUT_FOLLOW_THROUGH"
+    H1_CONFLICT_HIGH_BREAKOUT_FAILURE_RISK = "H1_CONFLICT_HIGH_BREAKOUT_FAILURE_RISK"
+    H1_CONFLICT_EXTREME_EXTENSION = "H1_CONFLICT_EXTREME_EXTENSION"
+    H1_CONFLICT_H1_STRUCTURE_BROKEN_AGAINST = "H1_CONFLICT_H1_STRUCTURE_BROKEN_AGAINST"
+    H1_BLOCKER_INVALID_H1_DATA = "H1_BLOCKER_INVALID_H1_DATA"
+    H1_BLOCKER_STALE_H1_DATA = "H1_BLOCKER_STALE_H1_DATA"
+    H1_BLOCKER_INSUFFICIENT_HISTORY = "H1_BLOCKER_INSUFFICIENT_HISTORY"
+    H1_BLOCKER_EXTREME_H1_VOLATILITY = "H1_BLOCKER_EXTREME_H1_VOLATILITY"
+    H1_BLOCKER_SEVERE_H1_CHOP = "H1_BLOCKER_SEVERE_H1_CHOP"
+    H1_BLOCKER_H4_BLOCK_ALL = "H1_BLOCKER_H4_BLOCK_ALL"
+    H1_BLOCKER_H4_PERMISSION_CONFLICT = "H1_BLOCKER_H4_PERMISSION_CONFLICT"
+    H1_BLOCKER_UNRESOLVED_DATA_GAP = "H1_BLOCKER_UNRESOLVED_DATA_GAP"
+    H1_BLOCKER_NO_H4_CONTEXT = "H1_BLOCKER_NO_H4_CONTEXT"
+    H1_BLOCKER_STALE_H4_CONTEXT = "H1_BLOCKER_STALE_H4_CONTEXT"
+    H1_BLOCKER_H4_ALIGNMENT_ERROR = "H1_BLOCKER_H4_ALIGNMENT_ERROR"
+    H1_BLOCKER_H1_CONTEXT_ERROR = "H1_BLOCKER_H1_CONTEXT_ERROR"
 
     def __str__(self) -> str:  # pragma: no cover - cosmetic
         return self.value
@@ -294,6 +346,57 @@ REASON_DESCRIPTIONS: dict[str, str] = {
     "BLOCKER_SEVERE_CHOP": "hard blocker: severe chop",
     "BLOCKER_UNCLASSIFIABLE_STRUCTURE": "hard blocker: structure cannot be classified",
     "BLOCKER_CONTEXT_ERROR": "hard blocker: context computation failed (fail-safe)",
+    "H4_LONG_PERMISSION": "H4 permits the H1 engine to search long",
+    "H4_SHORT_PERMISSION": "H4 permits the H1 engine to search short",
+    "H1_HEALTHY_PULLBACK": "H1 correction against the permitted direction is shallow/healthy",
+    "H1_DEEP_PULLBACK": "H1 correction is deep",
+    "H1_PULLBACK_STRUCTURE_DAMAGED": "H1 correction threatens or broke the impulse origin",
+    "H1_COUNTER_MOMENTUM_DETERIORATING": "counter-direction H1 momentum is fading during the correction",
+    "H1_BULLISH_TRANSITION": "measurable H1 structural transition upward (break out of bearish/neutral structure after a counter move)",
+    "H1_BEARISH_TRANSITION": "measurable H1 structural transition downward",
+    "H1_BULLISH_RECLAIM": "a lost H1 level was reclaimed upward",
+    "H1_BEARISH_RECLAIM": "a reclaimed H1 level was lost downward",
+    "H1_BULLISH_DISPLACEMENT": "strong multi-candle bullish H1 displacement",
+    "H1_BEARISH_DISPLACEMENT": "strong multi-candle bearish H1 displacement",
+    "H1_DOWNSIDE_SWEEP": "potential H1 downside liquidity reference swept and rejected",
+    "H1_UPSIDE_SWEEP": "potential H1 upside liquidity reference swept and rejected",
+    "H1_SUPPORT_REACTION": "quantified bullish rejection at an H1/H4 level",
+    "H1_RESISTANCE_REACTION": "quantified bearish rejection at an H1/H4 level",
+    "H4_H1_ZONE_CONFLUENCE": "price interacting with a clustered H4 + H1 level (counted once)",
+    "SUFFICIENT_UPSIDE_ROOM": "sufficient H1/H4 room above price",
+    "SUFFICIENT_DOWNSIDE_ROOM": "sufficient H1/H4 room below price",
+    "INSUFFICIENT_UPSIDE_ROOM": "insufficient H1/H4 room above price",
+    "INSUFFICIENT_DOWNSIDE_ROOM": "insufficient H1/H4 room below price",
+    "H1_HIGH_CHOP": "H1 chop is high",
+    "H1_HIGH_CONFLICT": "H1 setup evidence materially conflicts",
+    "SETUP_WATCHING": "a setup premise appeared; setup is being watched",
+    "SETUP_DEVELOPING": "setup score reached the developing threshold",
+    "SETUP_QUALIFIED": "setup met every qualification requirement (NOT a trade)",
+    "SETUP_INVALIDATED": "setup invalidated (reason recorded)",
+    "SETUP_EXPIRED": "setup expired (reason recorded)",
+    "SETUP_FAMILY_TREND_PULLBACK_CONTINUATION": "best eligible archetype: trend pullback continuation",
+    "SETUP_FAMILY_BREAK_RETEST_CONTINUATION": "best eligible archetype: break + retest continuation",
+    "SETUP_FAMILY_LIQUIDITY_SWEEP_REVERSAL_IN_H4_DIRECTION": "best eligible archetype: liquidity sweep reversal in the H4 direction",
+    "SETUP_FAMILY_COMPRESSION_EXPANSION_IN_H4_DIRECTION": "best eligible archetype: compression -> expansion in the H4 direction",
+    "H1_CONFLICT_H1_STRONGLY_OPPOSED": "setup conflict: strong opposing H1 displacement",
+    "H1_CONFLICT_H1_HIGH_CHOP": "setup conflict: high H1 chop",
+    "H1_CONFLICT_TRIGGER_UNDER_BARRIER": "setup conflict: trigger directly under/over an opposing barrier",
+    "H1_CONFLICT_SWEEP_WITHOUT_FOLLOW_THROUGH": "setup conflict: sweep without follow-through",
+    "H1_CONFLICT_HIGH_BREAKOUT_FAILURE_RISK": "setup conflict: breakout with high failure risk",
+    "H1_CONFLICT_EXTREME_EXTENSION": "setup conflict: setup after extreme extension",
+    "H1_CONFLICT_H1_STRUCTURE_BROKEN_AGAINST": "setup conflict: H1 structure broken against the setup direction",
+    "H1_BLOCKER_INVALID_H1_DATA": "H1 blocker: invalid H1 data",
+    "H1_BLOCKER_STALE_H1_DATA": "H1 blocker: stale H1 data",
+    "H1_BLOCKER_INSUFFICIENT_HISTORY": "H1 blocker: insufficient H1 or H4 history",
+    "H1_BLOCKER_EXTREME_H1_VOLATILITY": "H1 blocker: extreme H1 volatility",
+    "H1_BLOCKER_SEVERE_H1_CHOP": "H1 blocker: severe H1 chop",
+    "H1_BLOCKER_H4_BLOCK_ALL": "H1 blocker: H4 permission is BLOCK_ALL",
+    "H1_BLOCKER_H4_PERMISSION_CONFLICT": "H1 blocker (side): H4 does not permit this direction",
+    "H1_BLOCKER_UNRESOLVED_DATA_GAP": "H1 blocker: recent unresolved data gap",
+    "H1_BLOCKER_NO_H4_CONTEXT": "H1 blocker: no completed H4 bar available yet",
+    "H1_BLOCKER_STALE_H4_CONTEXT": "H1 blocker: latest completed H4 context is too old (missing H4 bars / gap)",
+    "H1_BLOCKER_H4_ALIGNMENT_ERROR": "H1 blocker: H4/H1 alignment could not be proven point-in-time safe",
+    "H1_BLOCKER_H1_CONTEXT_ERROR": "H1 blocker: H1 evaluation failed (fail-safe)",
 }
 
 

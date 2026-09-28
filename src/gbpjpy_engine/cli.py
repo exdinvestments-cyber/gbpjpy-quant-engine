@@ -60,6 +60,13 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("config", help="print all parameters with their documented purpose")
 
+    h = sub.add_parser("h1", help="Phase 1C: H1 setup intelligence (analysis only; no trading)")
+    h.add_argument("--h1-csv", help="CSV of H1 bars (timestamp = bar OPEN time)")
+    h.add_argument("--h4-csv", help="CSV of H4 bars; if omitted H4 is aggregated from complete H1 buckets")
+    h.add_argument("--tz", default=None, help="timezone of NAIVE timestamps")
+    h.add_argument("--h1-scenario", help="synthetic H1 scenario (engineering tests only)")
+    h.add_argument("--out", help="per-H1-bar setup table output (.parquet/.csv/.jsonl)")
+
     args = p.parse_args(argv)
     logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
@@ -71,6 +78,8 @@ def main(argv: list[str] | None = None) -> int:
         generate_scenario(args.scenario, seed=args.seed).bars.to_csv(args.out, index=False)
         return 0
 
+    if args.cmd == "h1":
+        return _run_h1(args)
     engine = H4MarketIntelligenceEngine(load_config(args.config))
     result = engine.run(_load(args))
     if args.cmd == "run":
@@ -91,6 +100,31 @@ def main(argv: list[str] | None = None) -> int:
         print(explain_permission(result, args.timestamp))
         return 0
     print(snap.to_json() if args.json else explain(snap))
+    return 0
+
+
+def _run_h1(args) -> int:
+    from .data.resample import resample_complete
+    from .h1 import H1SetupEngine, explain_h1_setup
+    from .synthetic_h1 import generate_h1_scenario
+
+    if args.h1_scenario:
+        sc = generate_h1_scenario(args.h1_scenario)
+        h1, h4 = sc.h1, sc.h4
+    else:
+        if not args.h1_csv:
+            raise SystemExit("provide --h1-csv or --h1-scenario")
+        h1 = load_csv(args.h1_csv, assume_timezone=args.tz)
+        h4 = load_csv(args.h4_csv, assume_timezone=args.tz) if args.h4_csv else resample_complete(h1, 60, 240)[0]
+    h4_result = H4MarketIntelligenceEngine().run(h4)
+    res = H1SetupEngine().run(h1, h4_result)
+    if args.out:
+        res.export(args.out)
+    print(json.dumps({"h1_bars": len(res.frame), "h4_bars": len(h4_result.features),
+                      "setups": len(res.setups), "qualified": len(res.qualified_setups),
+                      "counterfactual": len(res.counterfactual)}, indent=2))
+    for q in res.qualified_setups[-3:]:
+        print("\n" + explain_h1_setup(res, q["setup_id"]))
     return 0
 
 

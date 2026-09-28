@@ -1,0 +1,560 @@
+# GBPJPY H1 Setup Intelligence Engine (Phase 1C) - baseline configuration.
+#
+# Reused Phase 1A/1B sections keep their documented meaning with 60-minute bars. NOT optimised.
+# Load with gbpjpy_engine.h1.load_h1_config('config/h1_default.yaml'); omitted keys keep the H1 defaults.
+
+
+data:
+  # Instrument identifier. The engine is dedicated to GBPJPY.
+  symbol: "GBPJPY"
+  # Bar duration in minutes (H4 = 240). Bar timestamps are bar OPEN times.
+  timeframe_minutes: 60
+  # Price value of one pip for a JPY-quoted pair.
+  pip_size: 0.01
+  # Largest gap between consecutive bar opens that is treated as a normal weekend closure (only when the
+  # gap spans a Saturday). Longer gaps are flagged as missing bars.
+  max_weekend_gap_hours: 72.0
+  # An open-vs-previous-close gap larger than this multiple of the trailing median bar range is flagged
+  # ABNORMAL_PRICE_GAP (flagged, never repaired).
+  abnormal_gap_range_mult: 2.0
+  # Trailing bars used for the median-range reference in gap detection.
+  gap_reference_window: 50
+
+engine:
+  # Bars required before outputs are considered fully formed (EMA200 + percentile history). Before this,
+  # regime=UNCLEAR and bias=NEUTRAL with reason INSUFFICIENT_HISTORY.
+  warmup_bars: 250
+  # Raise DataIntegrityError when ERROR-severity data issues exist (duplicates, out-of-order, invalid
+  # OHLC, non-positive prices, naive timestamps). Data is never silently repaired.
+  fail_on_data_errors: true
+
+swing:
+  # Bars to the LEFT of a pivot that must be strictly lower (high pivot) / higher (low pivot).
+  left_bars: 3
+  # Bars to the RIGHT required to confirm a pivot. A pivot at bar i only becomes known at the CLOSE of
+  # bar i+right_bars; that is its availability timestamp.
+  right_bars: 3
+  # Minimum distance (in ATR at confirmation time) from the previous opposite swing for a new swing to
+  # be accepted. Filters candle noise out of the structural swing sequence.
+  min_swing_atr: 1.0
+  # Swings within this many ATR of the previous same-type swing are labelled equal (EH/EL) rather than
+  # higher/lower.
+  equal_level_atr: 0.1
+
+structure:
+  # A structural break requires the candle CLOSE to be beyond the swing level by at least this many ATR.
+  # Wick-only or tiny closes are not structural breaks. Such a break starts as CANDIDATE.
+  break_min_atr: 0.25
+  # Bars after a break during which every close must hold beyond the level for the break to move
+  # CANDIDATE -> CONFIRMED. Any close back through the level in this window moves it to INVALIDATED.
+  break_confirm_bars: 2
+  # Minimum bars since the break before a CONFIRMED break can become ACCEPTED (requires follow-through,
+  # see break_accept_atr).
+  break_accept_bars: 6
+  # Follow-through required for ACCEPTED: the best close beyond the level must reach this many ATR (ATR
+  # at the break bar).
+  break_accept_atr: 1.0
+  # A CONFIRMED or ACCEPTED break becomes FAILED when a later close is back through the level by at
+  # least this many ATR (ATR of that later bar). Earlier recorded states are never rewritten.
+  break_fail_atr: 0.25
+  # Bars after the break during which the lifecycle is monitored. After this the last state is frozen; a
+  # much later return through the level is treated as new structure, not as failure of this break.
+  break_monitor_bars: 60
+  # Rolling number of confirmed structural swings retained in working memory and exposed per bar
+  # (swing_history). Must be >= 4 and >= quality_swings.
+  swing_history_size: 16
+  # How long (bars) a counter-structure break (CHoCH) that is neither INVALIDATED nor FAILED keeps the
+  # structure state 'transitional' unless the swing sequence re-establishes a clear direction first.
+  transition_memory_bars: 30
+  # Number of most recent confirmed swings used for structure-quality measures.
+  quality_swings: 8
+  # Trailing bars used for break-conflict, reversal-frequency and persistence measures.
+  quality_window_bars: 60
+
+trend:
+  # Fast EMA period.
+  ema_fast: 20
+  # Medium EMA period; also the trend baseline for crossings and flatness.
+  ema_mid: 50
+  # Slow EMA period (long-term context).
+  ema_slow: 200
+  # Bars over which EMA slopes are measured.
+  slope_lookback: 5
+  # EMA slope (ATR per bar) that maps to ~76% of maximum slope contribution (tanh scaling).
+  slope_norm_atr_per_bar: 0.08
+  # EMA20-EMA50 separation (ATR) that maps to ~76% of maximum separation contribution.
+  separation_norm_atr: 1.5
+  # Price-to-EMA50 distance (ATR) that maps to ~76% of maximum distance contribution.
+  distance_norm_atr: 2.0
+  # Bars over which EMA20-vs-EMA50 alignment persistence is averaged.
+  persistence_window: 30
+  # Absolute trend score (0-100) required for a bullish/bearish trend state.
+  trend_threshold: 30.0
+  # Absolute trend score required for a strong trend state.
+  strong_threshold: 60.0
+
+adx:
+  # Wilder ADX / DI period.
+  period: 14
+  # Bars over which ADX slope is measured.
+  slope_lookback: 3
+  # Bars over which DI dominance persistence is averaged.
+  persistence_window: 20
+  # ADX below this is treated as non-directional context.
+  weak_adx: 18.0
+  # ADX above this is treated as a directional environment (context only, never a signal).
+  strong_adx: 25.0
+
+volatility:
+  # Primary ATR period (Wilder).
+  atr_period: 14
+  # Short ATR for expansion/contraction measurement.
+  atr_short_period: 5
+  # Long ATR for expansion/contraction measurement.
+  atr_long_period: 50
+  # Trailing bars (~4 months of H4) for ATR% percentile ranking.
+  percentile_lookback: 500
+  # Minimum history before an ATR percentile is reported.
+  percentile_min_periods: 100
+  # ATR percentile at/below which volatility is 'very_low'.
+  very_low_pct: 10.0
+  # ATR percentile at/below which volatility is 'low'.
+  low_pct: 30.0
+  # ATR percentile at/above which volatility is 'high'.
+  high_pct: 70.0
+  # ATR percentile at/above which volatility is 'extreme'.
+  extreme_pct: 92.0
+  # Short/long ATR ratio at/above which volatility is 'expanding'.
+  expansion_ratio: 1.2
+  # Short/long ATR ratio at/below which volatility is 'contracting'.
+  contraction_ratio: 0.8
+
+shock:
+  # Bar range / previous ATR at which range-shock severity starts above 0.
+  range_atr_start: 2.0
+  # Bar range / previous ATR at which range-shock severity reaches 100.
+  range_atr_extreme: 5.0
+  # |open - previous close| / previous ATR at which gap severity starts.
+  gap_atr_start: 0.5
+  # Gap / previous ATR at which gap severity reaches 100.
+  gap_atr_extreme: 3.0
+  # Largest wick / previous ATR at which wick severity starts.
+  wick_atr_start: 1.2
+  # Largest wick / previous ATR at which wick severity reaches 100.
+  wick_atr_extreme: 3.5
+  # |close - previous close| / previous ATR at which displacement severity starts.
+  displacement_atr_start: 1.5
+  # Close-to-close displacement / previous ATR at which severity reaches 100.
+  displacement_atr_extreme: 4.0
+  # Short/long ATR ratio at which ATR-expansion severity starts.
+  expansion_ratio_start: 1.4
+  # Short/long ATR ratio at which ATR-expansion severity reaches 100.
+  expansion_ratio_extreme: 2.6
+  # shock_severity at/above which volatility_shock=True.
+  shock_threshold: 50.0
+
+momentum:
+  # Return lookbacks (bars) for ATR-and-sqrt(n)-normalised rate of change.
+  roc_periods: [3, 6, 12]
+  # Normalised ROC that maps to ~76% of maximum ROC contribution (tanh scaling).
+  roc_norm: 1.0
+  # Bars over which impulse velocity (ATR per bar) is measured.
+  velocity_window: 6
+  # Velocity (ATR/bar) mapping to ~76% of maximum velocity contribution.
+  velocity_norm: 0.25
+  # Bars over which signed body/range ratios are averaged.
+  body_window: 6
+  # Consecutive same-direction closes counted up to this cap.
+  consecutive_cap: 5
+  # Trailing bars for the percentile of current momentum vs historical momentum.
+  history_lookback: 500
+  # Bars over which net momentum change is measured for acceleration state.
+  accel_lookback: 3
+  # Net-momentum change (points) required to call accelerating/decelerating.
+  accel_threshold: 10.0
+  # |net momentum| below which momentum is 'flat'.
+  flat_threshold: 10.0
+
+candle:
+  # Body/range at/above which a close may be 'strong directional'.
+  strong_body_ratio: 0.6
+  # Close location (0=low,1=high) required for a strong bullish close (mirrored for bearish).
+  strong_close_location: 0.75
+  # Single wick/range at/above which a candle may be a 'rejection'.
+  rejection_wick_ratio: 0.5
+  # Maximum body/range for a rejection candle.
+  rejection_max_body: 0.35
+  # Body/range at/below which a candle is 'indecision'.
+  indecision_body_ratio: 0.2
+  # Range / previous ATR at/above which a candle is 'abnormal expansion'.
+  abnormal_range_atr: 2.0
+
+chop:
+  # Trailing bars for overlap, baseline-crossing and displacement measures.
+  window: 20
+  # Choppiness Index period.
+  choppiness_period: 14
+  # EMA50 slope (ATR/bar) at/above which the baseline is no longer considered flat.
+  flat_slope_atr_per_bar: 0.06
+  # EMA20-EMA50 separation (ATR) at/above which EMAs are not compressed.
+  compressed_separation_atr: 1.0
+  # chop_score at/above which market quality is 'severe_chop'.
+  severe_threshold: 72.0
+  # chop_score at/above which market quality is 'range'.
+  range_threshold: 55.0
+  # chop_score below which (with trend strength) quality is 'clean_trend'.
+  clean_threshold: 38.0
+  # Trend strength required for 'clean_trend'.
+  clean_trend_strength: 50.0
+  # Trend strength required for 'trend_with_noise'.
+  noisy_trend_strength: 30.0
+
+efficiency:
+  # Bars for directional efficiency: |net displacement| / sum(|bar-to-bar moves|).
+  lookback: 20
+  # Trailing bars for the efficiency percentile.
+  percentile_lookback: 500
+  # Minimum history before an efficiency percentile is reported.
+  percentile_min_periods: 100
+  # Efficiency below this raises LOW_DIRECTIONAL_EFFICIENCY.
+  low_efficiency: 0.2
+  # Efficiency at/above this raises HIGH_DIRECTIONAL_EFFICIENCY.
+  high_efficiency: 0.45
+
+levels:
+  # Only swings/breaks/touches within this many trailing bars contribute to zones.
+  lookback_bars: 300
+  # Level prices within this many ATR (current ATR) are clustered into one zone.
+  cluster_atr_mult: 0.5
+  # Minimum half-width of a zone in ATR.
+  min_half_width_atr: 0.1
+  # Recent range high/low lookback used as a level source.
+  range_extreme_lookback: 60
+  # Maximum zones retained (strongest first) to avoid meaningless line clutter.
+  max_zones: 12
+  # A zone within this many ATR of price counts as 'near'.
+  near_level_atr: 0.75
+  # level_strength_score at/above which a zone is 'strong'.
+  strong_level_score: 60.0
+  # A zone is INVALIDATED once closes have crossed from one side of it to the other this many times
+  # within the lookback (it no longer behaves as a level). 0 disables break-based invalidation.
+  invalidate_after_breaks: 4
+
+round_numbers:
+  # JPY round-number intervals (1.00 = 100 pips, 0.50 = 50 pips). Context only.
+  intervals: [1.0, 0.5]
+  # Distance (pips) to the primary round number that raises NEAR_ROUND_NUMBER.
+  near_pips: 15.0
+
+range_location:
+  # Short lookback (bars) for range-location percentile (~3.3 trading days).
+  short: 20
+  # Medium lookback (bars) (~2 trading weeks).
+  medium: 60
+  # Long lookback (bars) (~6 trading weeks).
+  long: 180
+
+extension:
+  # Bars used to measure the recent impulse magnitude.
+  impulse_window: 10
+  # Trailing bars for the extension percentile.
+  percentile_lookback: 500
+  # Minimum history before an extension percentile is used.
+  percentile_min_periods: 100
+  # Composite EMA distance (ATR) that maps to an absolute sub-score of 100.
+  absolute_norm_atr: 3.0
+  # extension_score at/above which state is 'extended'.
+  extended_score: 65.0
+  # extension_score at/above which state is 'extremely_extended'.
+  extreme_score: 85.0
+
+sessions:
+  # Session definitions as (name, IANA timezone, local start, local end). DST is resolved per date via
+  # zoneinfo.
+  sessions:
+    - ["asia", "Asia/Tokyo", "09:00", "18:00"]
+    - ["london", "Europe/London", "08:00", "17:00"]
+    - ["new_york", "America/New_York", "08:00", "17:00"]
+  # Minutes a bar must overlap a session for that session to be counted as active.
+  min_overlap_minutes: 60
+
+hierarchy:
+  # Confirmed swings (most recent) interpreted for PRIMARY structure (<= swing_history_size).
+  primary_swings: 12
+  # Confirmed swings interpreted for INTERMEDIATE structure.
+  intermediate_swings: 8
+  # Confirmed swings interpreted for IMMEDIATE structure (plus the current close).
+  immediate_swings: 4
+  # Recency-weighted share of labels (HH/HL or LH/LL) required for a BULLISH/BEARISH layer.
+  consistency_threshold: 0.6
+  # Linear recency weighting: the newest swing in a window weighs this many times the oldest (weights
+  # rise linearly in between). 1.0 = equal weights. Documented, not exponential, not fitted.
+  recency_weight_ratio: 2.0
+  # Swing highs and swing lows each spanning <= this many ATR classify the window as RANGING.
+  range_band_atr: 1.5
+  # A close beyond the protected swing (the low/high that launched the latest HH/LL) by this many ATR
+  # makes the layer TRANSITIONAL.
+  protected_break_atr: 0.25
+  # IMMEDIATE layer only: a close beyond the latest swing high/low by this many ATR counts as a
+  # provisional HH/LL.
+  provisional_break_atr: 0.1
+
+legs:
+  # impulse_score at/above which a with-structure leg is STRONG_IMPULSE.
+  strong_impulse_score: 70.0
+  # impulse_score at/above which a with-structure leg is NORMAL_IMPULSE (below: WEAK_IMPULSE).
+  normal_impulse_score: 55.0
+  # impulse_score at/above which a leg's nature is IMPULSIVE.
+  impulsive_score: 55.0
+  # impulse_score below which a leg's nature is CORRECTIVE (in between: MIXED).
+  corrective_score: 40.0
+  # Counter-structure leg length / preceding leg length at/below which a correction is HEALTHY
+  # (descriptive band).
+  healthy_correction_ratio: 0.6
+  # Correction directional efficiency below which it is CHOPPY_CORRECTION.
+  choppy_efficiency: 0.3
+  # Mean candle overlap above which a correction is CHOPPY_CORRECTION.
+  choppy_overlap: 0.6
+
+displacement:
+  # Bars in the multi-candle displacement window (a single candle alone is never enough).
+  window: 3
+  # Trailing bars for the displacement-magnitude percentile.
+  percentile_lookback: 500
+  # Net multi-bar move (ATR before the window) required for STRONG/EXTREME displacement.
+  min_multi_bar_atr: 1.5
+  # Directional closes in the window required for STRONG/EXTREME displacement.
+  min_directional_closes: 2
+  # Window directional efficiency required for STRONG/EXTREME displacement.
+  min_efficiency: 0.5
+  # Score at/above which displacement is WEAK (below: NONE).
+  weak_score: 20.0
+  # Score at/above which displacement is MODERATE.
+  moderate_score: 40.0
+  # Score at/above which displacement is STRONG.
+  strong_score: 60.0
+  # Score at/above which displacement is EXTREME.
+  extreme_score: 80.0
+  # Bars over which the most recent displacement is considered 'recent' context.
+  recent_bars: 6
+
+breakout_context:
+  # Swing significance (ATR) mapping to full level-importance.
+  importance_norm_atr: 3.0
+  # A bar trading back within this many ATR of a broken level (and closing beyond it) is a retest.
+  retest_tolerance_atr: 0.3
+  # Closes beyond the level after the break that count as multi-close acceptance evidence.
+  acceptance_min_closes: 3
+  # breakout_quality_score at/above which a break is HIGH_QUALITY_BREAK.
+  high_quality_score: 70.0
+  # breakout_quality_score at/above which a break is MODERATE_BREAK.
+  moderate_quality_score: 50.0
+  # breakout_quality_score at/above which a break is WEAK_BREAK (below: FALSE_BREAK_CANDIDATE).
+  weak_quality_score: 30.0
+  # false_break_risk_score at/above which HIGH_FALSE_BREAK_RISK is raised.
+  high_false_break_risk: 60.0
+  # A strong opposing zone within this many ATR beyond a broken level adds false-break risk.
+  opposing_zone_atr: 1.0
+
+liquidity:
+  # Swings (by pivot bar) within this many bars can be liquidity references.
+  lookback_bars: 200
+  # Swing extremes within this many ATR form an EQUAL_HIGHS/EQUAL_LOWS cluster.
+  equal_tol_atr: 0.15
+  # Swing extremes within this many ATR (but not equal) form a NEAR_EQUAL cluster.
+  near_equal_tol_atr: 0.35
+  # Minimum trade beyond a reference (ATR) to count as a penetration.
+  min_penetration_atr: 0.02
+  # Penetration (ATR) at which a move is no longer sweep-like (score component reaches 0).
+  max_sweep_penetration_atr: 2.0
+  # A close beyond the reference by this many ATR resolves the event as BREAK_AND_ACCEPT.
+  accept_close_atr: 0.25
+  # Bars after penetration with every close back inside before SWEEP_AND_REJECT is declared.
+  resolve_bars: 3
+  # Bars after penetration during which a sweep event can still change state; then frozen.
+  monitor_bars: 12
+  # A sweep contributes to bullish/bearish sweep scores for this many bars after penetration.
+  sweep_memory_bars: 12
+
+origin_zones:
+  # Displacement score (STRONG) that qualifies an origin zone.
+  min_displacement_score: 60.0
+  # Bars immediately preceding the displacement window that form the origin zone.
+  origin_bars: 2
+  # Origin zones wider than this many ATR at creation are not created (not a compact origin).
+  max_width_atr: 2.5
+  # Origin zones older than this are retired (ageing).
+  max_age_bars: 300
+  # Interactions at/below which a zone is LIGHTLY_TESTED (0 = FRESH).
+  lightly_tested: 1
+  # Interactions at/below which a zone is TESTED (above: HEAVILY_TESTED).
+  tested: 3
+
+compression:
+  # Most recent swings whose amplitude trend is measured.
+  amplitude_swings: 6
+  # Short window (bars) for mean candle range.
+  range_short: 10
+  # Long window (bars) for mean candle range.
+  range_long: 50
+  # compression_score at/above which compression is present.
+  compression_threshold: 60.0
+  # Consecutive compression bars forming a compression episode.
+  min_compression_bars: 4
+  # Bars after a compression episode ends within which a displacement/break counts as expansion.
+  expansion_window_bars: 3
+  # Bars an expansion event is tracked for acceptance/failure.
+  expansion_track_bars: 20
+  # An expansion bar's range must be at least this multiple of the mean bar range during the compression
+  # episode.
+  expansion_range_ratio: 1.5
+
+room:
+  # Distance (ATR) to the nearest opposing barrier mapping to room score 0.
+  min_room_atr: 0.5
+  # Distance (ATR) to the nearest opposing barrier mapping to room score 100.
+  full_room_atr: 4.0
+  # Room score at/above which SUFFICIENT_*_ROOM is raised (below: INSUFFICIENT).
+  sufficient_room_score: 40.0
+
+location_context:
+  # Structural range (latest swing high - latest swing low) must be at least this many ATR to be valid.
+  min_range_atr: 1.5
+  # Range percentile below which location is DEEP_DISCOUNT.
+  deep_discount_pct: 20.0
+  # Range percentile below which location is DISCOUNT.
+  discount_pct: 45.0
+  # Range percentile above which location is PREMIUM (45-55 = EQUILIBRIUM).
+  premium_pct: 55.0
+  # Range percentile above which location is DEEP_PREMIUM.
+  deep_premium_pct: 80.0
+  # Retracement below this % of the active impulse is SHALLOW (descriptive band, not Fibonacci).
+  shallow_retracement_pct: 30.0
+  # Retracement below this % is NORMAL.
+  normal_retracement_pct: 55.0
+  # Retracement below this % is DEEP (at/above: VERY_DEEP).
+  deep_retracement_pct: 80.0
+
+alignment:
+  # If (H1 bar close - latest completed H4 close) exceeds this, the attached H4 context is STALE and H1
+  # is blocked. Normal ages are 0-3h; larger values mean missing H4 bars or a session gap.
+  max_context_age_hours: 8.0
+
+pullback:
+  # Minimum size (H1 ATR) of the reference impulse a pullback is measured against.
+  min_impulse_atr: 1.5
+  # Most recent confirmed H1 legs searched for the reference impulse.
+  impulse_lookback_legs: 6
+  # Retracement below this % of the reference impulse = NO_PULLBACK.
+  no_pullback_pct: 10.0
+  # Retracement below this % = SHALLOW_PULLBACK (descriptive band).
+  shallow_pct: 30.0
+  # Retracement below this % = HEALTHY_PULLBACK (descriptive band).
+  healthy_pct: 70.0
+  # Retracement below this % = DEEP_PULLBACK; at/above = STRUCTURE_THREATENING.
+  deep_pct: 100.0
+  # A close beyond the impulse origin by this many ATR = FAILED_PULLBACK_CONTEXT (structure broken).
+  failed_buffer_atr: 0.25
+  # Lower edge of the depth band given full depth credit in pullback quality (untested).
+  ideal_depth_low: 35.0
+  # Upper edge of the depth band given full depth credit in pullback quality (untested).
+  ideal_depth_high: 65.0
+  # Correction velocity (ATR/bar) at which the controlled-velocity component reaches 0.
+  max_velocity_atr: 0.8
+
+transition:
+  # A structural transition stays 'recent' context for this many H1 bars.
+  recent_bars: 12
+  # A prior counter-direction move of at least this many ATR must precede a transition.
+  min_counter_leg_atr: 1.0
+  # Bars without a new counter-direction extreme that count as 'counter structure stopped progressing'.
+  stall_bars: 3
+
+reclaim:
+  # A reclaim stays 'recent' context for this many H1 bars.
+  recent_bars: 12
+
+rejection:
+  # A wick within this many ATR of an H1/H4 level or liquidity reference counts as a level interaction.
+  level_tolerance_atr: 0.3
+  # Trailing bars for the historical percentile of rejection-wick size.
+  significance_lookback: 200
+  # Rejections from the last N bars (incl. current) are considered, with follow-through measured to now.
+  recent_bars: 3
+
+confluence:
+  # H4 and H1 levels within this many H1 ATR are merged into ONE confluence cluster.
+  cluster_tolerance_atr: 0.5
+  # A confluence cluster within this many H1 ATR of the close counts as 'interacting'.
+  near_atr: 1.0
+
+setup:
+  # Breaks, sweeps and expansions older than this many H1 bars cannot anchor a new setup.
+  family_event_bars: 12
+  # Setup score at/above which a WATCHING setup becomes DEVELOPING.
+  developing_score: 45.0
+  # Setup score required for QUALIFIED (untested baseline).
+  qualify_score: 60.0
+  # Setup confidence required for QUALIFIED.
+  qualify_min_confidence: 50.0
+  # h1_setup_conflict_score above which a setup cannot qualify.
+  max_conflict: 50.0
+  # H1 room score in the setup direction required to qualify (and below which room 'disappears').
+  min_room_score: 30.0
+  # Family trigger evidence (transition / reaction / rejection / expansion) required to qualify.
+  min_trigger_score: 50.0
+  # A setup that has not qualified within this many bars of first being watched EXPIRES.
+  watch_expiry_bars: 24
+  # A QUALIFIED setup is considered stale and EXPIRES after this many bars.
+  qualified_expiry_bars: 12
+  # A setup EXPIRES if price has travelled this many ATR in the setup direction since it started (move
+  # left without it).
+  max_travel_atr: 3.0
+  # Opposing H1 displacement at/above this INVALIDATES an active setup.
+  opposing_displacement_invalidate: 70.0
+  # Setups that never qualified but reached this peak score are kept in the counterfactual log.
+  counterfactual_min_score: 45.0
+  # H1 extension_score at/above which (in the setup direction) the setup is treated as chasing (conflict
+  # + penalty).
+  extension_chase_score: 85.0
+
+scoring:
+  # Setup-quality family weight: H4_CONTEXT (H4 context score and permission confidence).
+  w_h4_context: 0.15
+  # Family weight: H1_STRUCTURE (hierarchy + transition).
+  w_h1_structure: 0.15
+  # Family weight: PULLBACK_QUALITY.
+  w_pullback: 0.1
+  # Family weight: LOCATION.
+  w_location: 0.1
+  # Family weight: DISPLACEMENT.
+  w_displacement: 0.1
+  # Family weight: MOMENTUM.
+  w_momentum: 0.1
+  # Family weight: LIQUIDITY_CONTEXT.
+  w_liquidity: 0.05
+  # Family weight: MARKET_QUALITY (chop, efficiency, volatility).
+  w_market_quality: 0.1
+  # Family weight: ROOM_TO_MOVE.
+  w_room: 0.1
+  # Family weight: CONFLICT (100 - conflict).
+  w_conflict: 0.05
+  # setup_score = family_blend x setup-family (archetype) score + (1 - family_blend) x quality-family
+  # score.
+  family_blend: 0.5
+  # setup_score *= 1 - conflict_penalty x conflict/100.
+  conflict_penalty: 0.5
+
+blockers:
+  # INVALID_H1_DATA blocker when the H1 bar carries ERROR-level data issues.
+  block_invalid_data: true
+  # STALE_H1_DATA (latest bar only, when as_of is supplied): as_of - H1 close exceeds this.
+  stale_after_hours: 3.0
+  # UNRESOLVED_DATA_GAP for this many H1 bars after a missing-bar / gap / grid-shift flag (0 disables).
+  gap_block_bars: 3
+  # EXTREME_H1_VOLATILITY when H1 shock_severity is at/above this.
+  shock_block_severity: 85.0
+  # EXTREME_H1_VOLATILITY also when the H1 volatility regime is 'extreme'.
+  block_extreme_volatility_regime: true
+  # SEVERE_H1_CHOP when h1_chop_score is at/above this.
+  severe_chop_score: 72.0
