@@ -75,3 +75,15 @@ def entry_results(engine, h1_engine, entry_engine):
         h1 = h1_engine.run(sc.h1, h4)
         out[name] = (sc, h4, h1, entry_engine.run(h1, h4))
     return out
+
+
+# ---------------------------------------------------------------------------
+# Phase 1E (trade construction) fixtures - additive
+# ---------------------------------------------------------------------------
+@pytest.fixture(scope="session")
+def trade_results(entry_results):
+    """{scenario: (scenario, H4 result, H1 result, entry result, trade result)}."""
+    from gbpjpy_engine.trade import TradeConstructionEngine
+
+    eng = TradeConstructionEngine()
+    return {name: (sc, h4, h1, er, eng.run(er, h1, h4)) for name, (sc, h4, h1, er) in entry_results.items()}

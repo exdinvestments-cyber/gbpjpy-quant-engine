@@ -8,7 +8,8 @@ depends on MetaTrader 4, MetaTrader 5, MQL4/MQL5, broker credentials or broker-s
                  GBPJPY STRATEGY CORE
    (market data -> H4 features -> H4 context/permission -> H1 setup intelligence (Phase 1C)
     -> entry intelligence / executable entry candidate (Phase 1D, NOT an order)
-    -> [future: risk engine, execution logic])
+    -> trade construction / proposed trade (Phase 1E, NOT an order: prices and R only)
+    -> [future: account risk engine (volume), execution contract])
                           |
                BROKER-NEUTRAL INTERFACES   (this document; market-data protocols in data/interfaces.py)
                      /                \
@@ -23,6 +24,7 @@ Separation of concerns (target):
 | Feature engineering (Phase 1A) | causal H4 features, structure, zones | market data |
 | Context engine (Phase 1B) | hierarchy, breakouts, liquidity, permission | features |
 | H1 setup intelligence (Phase 1C) | H1 setups up to QUALIFIED | context |
+| Trade construction (Phase 1E) | structural stop, targets, 1R, gross/net R - no volume or money | entry candidates + the protocols below |
 | Entry intelligence (Phase 1D) | confirmation, timing, spread/bid-ask, executable entry candidate (not an order) | setups + the protocols below |
 | Risk engine (future) | exposure limits, drawdown guards | context, account state (neutral) |
 | Execution engine (future) | order intent → neutral order request | risk, neutral interfaces |
@@ -86,9 +88,29 @@ Protocols `entry.interfaces.LowerTimeframeProvider.closed_bars(timeframe, start,
 closed data only) and `IntrabarConfirmationProvider.confirm(direction, level, start, end, as_of)`. Optional
 research inputs; Phase 1D decisions never depend on them.
 
+## Trade proposal
+
+Produced by Phase 1E (`trade.TradeConstructionEngine`): direction, executable entry reference, proposed stop
+(LONG: sell stop on the BID; SHORT: buy stop on the ASK), structural target ladder and primary target, 1R, gross and
+estimated net R, cost assumptions. It contains no volume: a future account-level risk engine converts R into volume,
+and a future execution contract / MT4-MT5 adapter translates canonical entry, stop, target and volume into
+platform order structures.
+
+## Broker stop constraints
+
+Protocol `trade.interfaces.BrokerConstraintSource.stop_constraints(symbol, time) -> BrokerStopConstraints(status,
+min_stop_distance_points, freeze_level_points, source)`. Without an adapter the status is UNKNOWN. A stop inside a
+known broker stop level is rejected, never silently widened.
+
+## Transaction costs
+
+Protocol `trade.interfaces.TransactionCostModel.estimate(symbol, time, direction) -> CostEstimate` (pip-equivalent
+round-turn commission, account-independent). Unknown costs are represented explicitly, never as zero.
+
 ## Symbol specification
 
-`symbol` (canonical `GBPJPY`), `broker_symbol` (e.g. with suffix), `digits`, `point`, `pip_size` (0.01),
+Canonical form consumed by the core: `trade.symbol.SymbolSpec(symbol, digits, point, pip_size, source)`, supplied by
+an adapter through `SymbolSpecSource`. Adapter-side broker fields: `symbol` (canonical `GBPJPY`), `broker_symbol` (e.g. with suffix), `digits`, `point`, `pip_size` (0.01),
 `contract_size`, `min_volume`, `max_volume`, `volume_step`, `margin_currency`, `profit_currency`,
 `trading_sessions` (UTC windows), `stop_level_points`, `freeze_level_points`, `swap_long`, `swap_short`.
 

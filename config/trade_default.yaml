@@ -1,0 +1,113 @@
+# GBPJPY Trade Construction Engine (Phase 1E) - baseline configuration.
+#
+# Untested engineering baselines - NOT optimised and NOT tuned against profit. A proposed trade is not an order;
+# no lot size, monetary risk or leverage exists. Load with gbpjpy_engine.trade.load_trade_config(path).
+
+
+stop:
+  # Per setup family: ordered structural invalidation references. The FIRST reference that exists on the correct
+  # side of the entry is the thesis-invalidation level. Targets and R never influence this choice.
+  policies:
+    - ["TREND_PULLBACK_CONTINUATION", ["STRUCTURAL_INVALIDATION", "SWING_INVALIDATION", "ZONE_INVALIDATION"]]
+    - ["BREAK_RETEST_CONTINUATION", ["BREAK_RETEST_FAILURE", "STRUCTURAL_INVALIDATION", "SWING_INVALIDATION"]]
+    - ["LIQUIDITY_SWEEP_REVERSAL_IN_H4_DIRECTION", ["RECLAIM_FAILURE", "STRUCTURAL_INVALIDATION", "SWING_INVALIDATION"]]
+    - ["COMPRESSION_EXPANSION_IN_H4_DIRECTION", ["STRUCTURAL_INVALIDATION", "SWING_INVALIDATION", "ZONE_INVALIDATION"]]
+  # A preferred reference closer than this (H1 ATR) to the entry sits in ordinary noise: the next structural
+  # reference FARTHER away is used (VOLATILITY_ADJUSTED_STRUCTURE). A stop is never moved closer.
+  min_structure_atr: 0.5
+  # Minimum noise buffer beyond the structural level, in H1 ATR (untested).
+  buffer_atr: 0.1
+  # Completed H1 bars whose adverse wicks form the wick-noise distribution.
+  wick_lookback: 50
+  # Quantile of adverse wick length used as the wick-noise buffer (untested).
+  wick_quantile: 0.75
+  # Minimum level strength for an H1 zone to be a ZONE_INVALIDATION reference.
+  zone_min_strength: 50.0
+  # Stops closer than this (pips) are rejected as nonsensical (never widened to comply).
+  min_stop_pips: 5.0
+  # Stop distance below this many ATR = TOO_TIGHT.
+  tight_atr: 0.5
+  # Stop distance up to this many ATR = NORMAL.
+  normal_atr: 2.5
+  # Stop distance up to this many ATR = WIDE; beyond = EXTREME (rejected: STOP_TOO_WIDE).
+  wide_atr: 4.0
+  # Bars forming the trailing 5-bar-range distribution for stop_distance_percentile.
+  percentile_lookback: 200
+  # stop_noise_risk_score at/above which the trade is rejected (STOP_INSIDE_NOISE).
+  noise_reject_score: 70.0
+  # stop_noise_risk_score at/above which STOP_INSIDE_NOISE is flagged as a conflict.
+  noise_warn_score: 50.0
+
+target:
+  # Structural targets kept in the ladder (T1..Tn).
+  max_targets: 3
+  # Target/barrier levels within this many ATR are one cluster (counted once).
+  cluster_tolerance_atr: 0.5
+  # Minimum level strength for an H1 zone to count as a target/barrier.
+  zone_min_strength: 50.0
+  # Clusters closer than this to the entry cannot be targets (they remain path barriers).
+  min_target_atr: 0.5
+  # Targets sit this many ATR BEFORE the structural level (never beyond it).
+  front_run_atr: 0.05
+  # Targets with reachability below this are TARGET_UNREALISTIC and cannot be primary.
+  min_reachability: 35.0
+  # Distance (ATR) at/below which the distance component of reachability is 1.
+  reach_full_atr: 1.0
+  # Distance (ATR) at/above which the distance component of reachability is 0; targets beyond it are never
+  # realistic.
+  reach_zero_atr: 8.0
+  # A path barrier at/above this strength counts as strong.
+  strong_barrier: 60.0
+  # Strong barriers between entry and the primary target at/above which the path is congested.
+  congested_strong_barriers: 2
+  # Path barrier density at/above which the path is congested.
+  congested_density: 60.0
+  # Path clusters are weighted by proximity over this distance (ATR).
+  density_window_atr: 3.0
+  # Weighted path-cluster sum mapping to density 100.
+  density_norm: 1.5
+
+cost:
+  # When no slippage model exists, this CONSERVATIVE assumption (pips per fill) is applied and flagged UNKNOWN.
+  assumed_slippage_pips_per_side: 0.5
+  # When no commission is known, this CONSERVATIVE assumption (pip-equivalent) is applied and flagged UNKNOWN.
+  assumed_commission_pips_round_turn: 0.5
+
+asymmetry:
+  # Minimum estimated net R of the PRIMARY target per setup family. Unfitted baseline - NOT assumed optimal.
+  min_net_r:
+    - ["TREND_PULLBACK_CONTINUATION", 1.5]
+    - ["BREAK_RETEST_CONTINUATION", 1.5]
+    - ["LIQUIDITY_SWEEP_REVERSAL_IN_H4_DIRECTION", 1.5]
+    - ["COMPRESSION_EXPANSION_IN_H4_DIRECTION", 1.5]
+
+scoring:
+  # Trade-quality family weight: ENTRY_QUALITY (Phase 1D entry_quality_score).
+  w_entry: 0.2
+  # Family weight: STOP_QUALITY.
+  w_stop: 0.2
+  # Family weight: TARGET_QUALITY (structural legitimacy + reachability of the primary).
+  w_target: 0.2
+  # Family weight: ASYMMETRY (estimated net R).
+  w_asymmetry: 0.15
+  # Family weight: PATH_QUALITY (100 - barrier density on the path to the primary).
+  w_path: 0.1
+  # Family weight: MARKET_CONTEXT (H4 context score and permission confidence).
+  w_context: 0.15
+  # quality *= 1 - conflict_penalty x conflict/100.
+  conflict_penalty: 0.5
+  # trade_construction_quality_score below which the trade is rejected.
+  min_quality: 40.0
+  # trade_construction_conflict_score above which the trade is rejected.
+  max_conflict: 60.0
+
+management:
+  # Default exit representation: SINGLE_TARGET (100% at the primary target). Multi-target splits exist for later
+  # research only.
+  exit_plan: "SINGLE_TARGET"
+  # Break-even policy (disabled: not assumed beneficial).
+  break_even_enabled: false
+  # Trailing-stop policy (disabled: not assumed beneficial).
+  trailing_enabled: false
+  # Time-based exit policy (disabled: not assumed beneficial).
+  time_exit_enabled: false

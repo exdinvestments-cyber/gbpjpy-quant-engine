@@ -2,7 +2,10 @@
 
 Research-grade algorithmic analysis system dedicated to **GBPJPY**.
 
-**Current phase: 1D — Entry Intelligence Engine**, built on the Phase 1C H1 Setup Intelligence Engine, the Phase 1B
+**Current phase: 1E — Trade Construction Engine**: accepted entry candidates become PROPOSED TRADES (structural
+invalidation stop first, structural targets second, 1R / gross / cost-adjusted R last; no R:R is manufactured). A
+proposed trade is **not an order** and contains no volume or monetary risk. Built on the Phase 1D Entry Intelligence
+Engine, the Phase 1C H1 Setup Intelligence Engine, the Phase 1B
 H4 Context & Directional Permission Engine and the Phase 1A/1A.1 H4 Market Intelligence Engine. Phase 1D decides
 whether a QUALIFIED H1 setup has developed into a precise, timely and executable ENTRY CANDIDATE (confirmation,
 freshness, chase/extension, bid/ask-aware executable reference, spread, gaps, room, abnormal conditions). An entry
@@ -37,6 +40,9 @@ python -m gbpjpy_engine h1 --h1-csv gbpjpy_h1.csv --tz UTC --out output/h1_setup
 
 # Phase 1D: entry intelligence (declare the spread units in config/entry_default.yaml: execution.spread_unit)
 python -m gbpjpy_engine entry --h1-csv gbpjpy_h1.csv --tz UTC --out output/entry.parquet
+
+# Phase 1E: trade construction (proposed trades - not orders)
+python -m gbpjpy_engine trade --h1-csv gbpjpy_h1.csv --tz UTC
 ```
 
 ```python
@@ -71,14 +77,16 @@ server time to canonical UTC bars before data reaches the engine; no adapter exi
   H4/H1 point-in-time alignment, setup families and lifecycle (Phase 1C).
 * [`docs/PHASE_1D_ENTRY_INTELLIGENCE.md`](docs/PHASE_1D_ENTRY_INTELLIGENCE.md) — entry confirmation, timing,
   bid/ask executable references, spread, historical execution realism (Phase 1D).
+* [`docs/PHASE_1E_TRADE_CONSTRUCTION.md`](docs/PHASE_1E_TRADE_CONSTRUCTION.md) — structural stops, targets, R and
+  costs, anti-R:R-manipulation, account separation (Phase 1E).
 * [`docs/BROKER_NEUTRAL_INTERFACES.md`](docs/BROKER_NEUTRAL_INTERFACES.md) — future MT4/MT5 adapter contracts
   (specification only).
 
 ## Layout
 
 ```
-src/gbpjpy_engine/   engine package (data, features, classification, context [Phase 1B], h1 [Phase 1C], entry [Phase 1D], engine, snapshot, logging, research, cli)
-config/              documented baseline configuration (h4_default.yaml, h1_default.yaml, entry_default.yaml)
+src/gbpjpy_engine/   engine package (data, features, classification, context [Phase 1B], h1 [Phase 1C], entry [Phase 1D], trade [Phase 1E], engine, snapshot, logging, research, cli)
+config/              documented baseline configuration (h4_default.yaml, h1_default.yaml, entry_default.yaml, trade_default.yaml)
 docs/                design and methodology documentation
 tests/               unit, anti-look-ahead and synthetic-scenario tests
 ```

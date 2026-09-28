@@ -268,6 +268,52 @@ class ReasonCode(str, Enum):
     OPPOSING_STRUCTURE_BREAK = "OPPOSING_STRUCTURE_BREAK"
     CONFIRMATION_LEVEL_LOST = "CONFIRMATION_LEVEL_LOST"
     STRUCTURAL_INVALIDATION = "STRUCTURAL_INVALIDATION"
+    # Phase 1E - trade construction
+    STRUCTURAL_STOP_VALID = "STRUCTURAL_STOP_VALID"
+    SWING_STOP_VALID = "SWING_STOP_VALID"
+    ZONE_STOP_VALID = "ZONE_STOP_VALID"
+    RECLAIM_FAILURE_STOP_VALID = "RECLAIM_FAILURE_STOP_VALID"
+    BREAK_RETEST_STOP_VALID = "BREAK_RETEST_STOP_VALID"
+    VOLATILITY_ADJUSTED_STOP_VALID = "VOLATILITY_ADJUSTED_STOP_VALID"
+    STOP_BUFFER_APPLIED = "STOP_BUFFER_APPLIED"
+    STOP_INSIDE_NOISE = "STOP_INSIDE_NOISE"
+    STOP_DISTANCE_EXCESSIVE = "STOP_DISTANCE_EXCESSIVE"
+    NO_STRUCTURAL_STOP = "NO_STRUCTURAL_STOP"
+    INVALID_STOP_GEOMETRY = "INVALID_STOP_GEOMETRY"
+    NON_FINITE_VALUE = "NON_FINITE_VALUE"
+    ZERO_RISK_DISTANCE = "ZERO_RISK_DISTANCE"
+    STOP_ON_WRONG_SIDE_OF_ENTRY = "STOP_ON_WRONG_SIDE_OF_ENTRY"
+    STOP_BELOW_MINIMUM_DISTANCE = "STOP_BELOW_MINIMUM_DISTANCE"
+    STOP_INSIDE_BROKER_STOP_LEVEL = "STOP_INSIDE_BROKER_STOP_LEVEL"
+    STOP_NOT_AT_SYMBOL_PRECISION = "STOP_NOT_AT_SYMBOL_PRECISION"
+    NUMERIC_INVALID = "NUMERIC_INVALID"
+    STRUCTURAL_TARGET_FOUND = "STRUCTURAL_TARGET_FOUND"
+    H1_TARGET_FOUND = "H1_TARGET_FOUND"
+    H4_TARGET_FOUND = "H4_TARGET_FOUND"
+    TARGET_PATH_CLEAR = "TARGET_PATH_CLEAR"
+    TARGET_PATH_BARRIERS_PRESENT = "TARGET_PATH_BARRIERS_PRESENT"
+    TARGET_PATH_CONGESTED = "TARGET_PATH_CONGESTED"
+    TARGET_UNREALISTIC = "TARGET_UNREALISTIC"
+    ASYMMETRY_ACCEPTABLE = "ASYMMETRY_ACCEPTABLE"
+    ASYMMETRY_INSUFFICIENT = "ASYMMETRY_INSUFFICIENT"
+    COSTS_KNOWN = "COSTS_KNOWN"
+    COSTS_UNKNOWN = "COSTS_UNKNOWN"
+    COSTS_DEGRADE_RR = "COSTS_DEGRADE_RR"
+    TRADE_PROPOSED = "TRADE_PROPOSED"
+    TRADE_REJECTED = "TRADE_REJECTED"
+    TRADE_INVALIDATED = "TRADE_INVALIDATED"
+    TRADE_EXPIRED = "TRADE_EXPIRED"
+    TRADE_CONFLICT_EXCELLENT_ENTRY_HUGE_STOP = "TRADE_CONFLICT_EXCELLENT_ENTRY_HUGE_STOP"
+    TRADE_CONFLICT_GOOD_RR_UNREALISTIC_TARGET = "TRADE_CONFLICT_GOOD_RR_UNREALISTIC_TARGET"
+    TRADE_CONFLICT_TARGET_DENSE_BARRIERS = "TRADE_CONFLICT_TARGET_DENSE_BARRIERS"
+    TRADE_CONFLICT_STOP_IN_ORDINARY_NOISE = "TRADE_CONFLICT_STOP_IN_ORDINARY_NOISE"
+    TRADE_CONFLICT_COSTS_DESTROY_ASYMMETRY = "TRADE_CONFLICT_COSTS_DESTROY_ASYMMETRY"
+    TRADE_CONFLICT_H4_CONTEXT_WEAKENING = "TRADE_CONFLICT_H4_CONTEXT_WEAKENING"
+    TRADE_CONFLICT_TOO_HIGH = "TRADE_CONFLICT_TOO_HIGH"
+    TRADE_QUALITY_TOO_LOW = "TRADE_QUALITY_TOO_LOW"
+    THESIS_FAILED_BEFORE_ENTRY = "THESIS_FAILED_BEFORE_ENTRY"
+    NEWS_UNKNOWN = "NEWS_UNKNOWN"
+    ENTRY_CANDIDATE_NOT_VALID = "ENTRY_CANDIDATE_NOT_VALID"
 
     def __str__(self) -> str:  # pragma: no cover - cosmetic
         return self.value
@@ -520,6 +566,51 @@ REASON_DESCRIPTIONS: dict[str, str] = {
     "OPPOSING_STRUCTURE_BREAK": "H1 structure broke against the candidate direction",
     "CONFIRMATION_LEVEL_LOST": "price closed back through the confirmation reference",
     "STRUCTURAL_INVALIDATION": "structural premise of the candidate failed",
+    "STRUCTURAL_STOP_VALID": "stop at the setup's structural invalidation level (buffered)",
+    "SWING_STOP_VALID": "stop beyond the most recent confirmed H1 swing (buffered)",
+    "ZONE_STOP_VALID": "stop beyond the far edge of the nearest H1 zone (buffered)",
+    "RECLAIM_FAILURE_STOP_VALID": "stop beyond the swept liquidity extreme (reclaim failure)",
+    "BREAK_RETEST_STOP_VALID": "stop beyond the retest structure of the broken level",
+    "VOLATILITY_ADJUSTED_STOP_VALID": "preferred reference sat inside noise: stop beyond the next structure (never closer)",
+    "STOP_BUFFER_APPLIED": "volatility-aware noise buffer (and trigger-side spread) applied beyond the structural level",
+    "STOP_INSIDE_NOISE": "stop sits inside ordinary observed GBPJPY noise",
+    "STOP_DISTANCE_EXCESSIVE": "structural stop requires an excessive distance for current volatility",
+    "NO_STRUCTURAL_STOP": "no structural invalidation reference on the correct side of the entry",
+    "INVALID_STOP_GEOMETRY": "stop failed sanity checks (geometry, precision, minimum distance)",
+    "NON_FINITE_VALUE": "non-finite value in stop/target mathematics",
+    "ZERO_RISK_DISTANCE": "stop equals the entry (zero risk distance)",
+    "STOP_ON_WRONG_SIDE_OF_ENTRY": "stop is not below a long / above a short entry",
+    "STOP_BELOW_MINIMUM_DISTANCE": "stop closer than the configured minimum distance",
+    "STOP_INSIDE_BROKER_STOP_LEVEL": "stop closer than the known broker stop level",
+    "STOP_NOT_AT_SYMBOL_PRECISION": "stop price not at symbol precision",
+    "NUMERIC_INVALID": "numeric failure (NaN, infinity, invalid geometry) - rejected safely",
+    "STRUCTURAL_TARGET_FOUND": "at least one structural target exists beyond the entry",
+    "H1_TARGET_FOUND": "a target built from H1 structure",
+    "H4_TARGET_FOUND": "a target built from H4 structure",
+    "TARGET_PATH_CLEAR": "no barrier between the entry and the primary target",
+    "TARGET_PATH_BARRIERS_PRESENT": "barriers exist between the entry and the primary target (not congested)",
+    "TARGET_PATH_CONGESTED": "path to every realistic target is congested by barriers",
+    "TARGET_UNREALISTIC": "no structural target is realistically reachable",
+    "ASYMMETRY_ACCEPTABLE": "primary target provides the configured minimum estimated net R",
+    "ASYMMETRY_INSUFFICIENT": "natural structure does not provide the configured minimum R (not manufactured)",
+    "COSTS_KNOWN": "all transaction-cost components known",
+    "COSTS_UNKNOWN": "some transaction costs unknown: conservative assumptions applied and flagged",
+    "COSTS_DEGRADE_RR": "gross R passes but costs push estimated net R below the minimum",
+    "TRADE_PROPOSED": "proposed trade (NOT an order)",
+    "TRADE_REJECTED": "trade construction rejected (retained for research)",
+    "TRADE_INVALIDATED": "trade construction invalidated",
+    "TRADE_EXPIRED": "trade construction expired",
+    "TRADE_CONFLICT_EXCELLENT_ENTRY_HUGE_STOP": "trade conflict: excellent entry but a wide stop",
+    "TRADE_CONFLICT_GOOD_RR_UNREALISTIC_TARGET": "trade conflict: good R relies on a poorly reachable target",
+    "TRADE_CONFLICT_TARGET_DENSE_BARRIERS": "trade conflict: dense barriers before the target",
+    "TRADE_CONFLICT_STOP_IN_ORDINARY_NOISE": "trade conflict: stop close to ordinary noise",
+    "TRADE_CONFLICT_COSTS_DESTROY_ASYMMETRY": "trade conflict: costs destroy the asymmetry",
+    "TRADE_CONFLICT_H4_CONTEXT_WEAKENING": "trade conflict: H4 context weakened since qualification",
+    "TRADE_CONFLICT_TOO_HIGH": "trade construction conflict above the limit",
+    "TRADE_QUALITY_TOO_LOW": "trade construction quality below the minimum",
+    "THESIS_FAILED_BEFORE_ENTRY": "thesis re-check failed immediately before finalising",
+    "NEWS_UNKNOWN": "news status unknown - no safety is assumed",
+    "ENTRY_CANDIDATE_NOT_VALID": "the entry candidate was not valid at the proposal time",
 }
 
 

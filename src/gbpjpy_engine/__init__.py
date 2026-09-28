@@ -4,7 +4,7 @@ Descriptive market-context analysis only.  This package contains NO order
 placement, NO broker connectivity, NO position sizing and NO entry logic.
 """
 
-__version__ = "0.4.0-phase1d"
+__version__ = "0.5.0-phase1e"
 
 from .config import H4Config, describe_config, load_config  # noqa: E402
 from .engine import H4AnalysisResult, H4MarketIntelligenceEngine  # noqa: E402

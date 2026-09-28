@@ -75,6 +75,13 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--entry-config", help="YAML/JSON entry config override file")
     e.add_argument("--out", help="per-H1-bar entry table output (.parquet/.csv/.jsonl)")
 
+    t = sub.add_parser("trade", help="Phase 1E: trade construction (proposed trades are NOT orders; no sizing)")
+    t.add_argument("--h1-csv", help="CSV of H1 bars (timestamp = bar OPEN time; optional spread column)")
+    t.add_argument("--h4-csv", help="CSV of H4 bars; if omitted H4 is aggregated from complete H1 buckets")
+    t.add_argument("--tz", default=None, help="timezone of NAIVE timestamps")
+    t.add_argument("--entry-scenario", help="synthetic entry scenario (engineering tests only)")
+    t.add_argument("--trade-config", help="YAML/JSON trade config override file")
+
     args = p.parse_args(argv)
     logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
@@ -90,6 +97,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_h1(args)
     if args.cmd == "entry":
         return _run_entry(args)
+    if args.cmd == "trade":
+        return _run_trade(args)
     engine = H4MarketIntelligenceEngine(load_config(args.config))
     result = engine.run(_load(args))
     if args.cmd == "run":
@@ -162,6 +171,32 @@ def _run_entry(args) -> int:
                       "counterfactual": len(res.counterfactual)}, indent=2))
     for a in res.accepted[-2:]:
         print("\n" + explain_entry_candidate(res, a["entry_candidate_id"]))
+    return 0
+
+
+def _run_trade(args) -> int:
+    from .data.resample import resample_complete
+    from .entry import EntryIntelligenceEngine
+    from .h1 import H1SetupEngine
+    from .synthetic_entry import generate_entry_scenario
+    from .trade import TradeConstructionEngine, explain_trade, load_trade_config
+
+    if args.entry_scenario:
+        sc = generate_entry_scenario(args.entry_scenario)
+        h1, h4 = sc.h1, sc.h4
+    else:
+        if not args.h1_csv:
+            raise SystemExit("provide --h1-csv or --entry-scenario")
+        h1 = load_csv(args.h1_csv, assume_timezone=args.tz)
+        h4 = load_csv(args.h4_csv, assume_timezone=args.tz) if args.h4_csv else resample_complete(h1, 60, 240)[0]
+    h4_result = H4MarketIntelligenceEngine().run(h4)
+    h1_result = H1SetupEngine().run(h1, h4_result)
+    entry = EntryIntelligenceEngine().run(h1_result, h4_result)
+    res = TradeConstructionEngine(load_trade_config(args.trade_config)).run(entry, h1_result, h4_result)
+    print(json.dumps({"accepted_entry_candidates": len(res.constructions), "proposed": len(res.proposals),
+                      "rejected_or_invalidated": len(res.rejected), "by_direction": res.direction_stats()}, indent=2))
+    for rec in res.constructions[-2:]:
+        print("\n" + explain_trade(res, rec.trade_proposal_id))
     return 0
 
 
