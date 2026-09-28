@@ -91,6 +91,44 @@ class H4Snapshot:
     warmup_complete: bool
     reason_codes: list
     market_data: dict = field(default_factory=dict)
+    # ---- Phase 1B: H4 context & directional permission (additive) ----
+    primary_structure: str | None = None
+    primary_structure_confidence: float | None = None
+    intermediate_structure: str | None = None
+    intermediate_structure_confidence: float | None = None
+    immediate_structure: str | None = None
+    immediate_structure_confidence: float | None = None
+    active_structural_leg: dict | None = None
+    retracement_depth: float | None = None
+    bullish_displacement_score: float | None = None
+    bearish_displacement_score: float | None = None
+    breakout_state: str | None = None
+    breakout_quality_score: float | None = None
+    acceptance_state: str | None = None
+    liquidity_context: dict | None = None
+    latest_liquidity_sweep: dict | None = None
+    nearest_supply_zone: dict | None = None
+    nearest_demand_zone: dict | None = None
+    zone_freshness: dict | None = None
+    structural_range_percentile: float | None = None
+    premium_discount_state: str | None = None
+    trend_maturity: str | None = None
+    momentum_deterioration_score: float | None = None
+    compression_score: float | None = None
+    expansion_state: str | None = None
+    false_break_risk_score: float | None = None
+    long_room_score: float | None = None
+    short_room_score: float | None = None
+    context_conflict_score: float | None = None
+    context_quality_score: float | None = None
+    long_context_score: float | None = None
+    short_context_score: float | None = None
+    directional_permission: str | None = None
+    permission_confidence: float | None = None
+    permission_reason_codes: list = field(default_factory=list)
+    hard_blockers: list = field(default_factory=list)
+    context_state: dict | None = None
+    context: dict | None = None
     warnings: list = field(default_factory=list)
     engine_version: str = ""
     config_hash: str = ""
@@ -118,6 +156,8 @@ def build_snapshot(
     engine_version: str,
     config_hash: str,
     swing_history: list | None = None,
+    context_row: Mapping[str, Any] | None = None,
+    context_detail: Mapping[str, Any] | None = None,
 ) -> H4Snapshot:
     ms = {
         "state": _g(row, "structure_state"),
@@ -153,7 +193,7 @@ def build_snapshot(
     }
     sq = {k[3:]: _g(row, k) for k in row.keys() if str(k).startswith("sq_")}
     rn_keys = [k for k in row.keys() if str(k).startswith(("nearest_round_number", "round_number_distance"))]
-    return H4Snapshot(
+    snap = H4Snapshot(
         timestamp=_g(row, "timestamp"),
         available_at=_g(row, "available_at"),
         symbol=symbol,
@@ -233,3 +273,33 @@ def build_snapshot(
         engine_version=engine_version,
         config_hash=config_hash,
     )
+    if context_row is not None:
+        _attach_context(snap, context_row, context_detail or {})
+    return snap
+
+
+def _attach_context(snap: H4Snapshot, cr: Mapping[str, Any], cd: Mapping[str, Any]) -> None:
+    g = lambda k: to_jsonable(cr.get(k))  # noqa: E731
+    for k in ("primary_structure", "primary_structure_confidence", "intermediate_structure",
+              "intermediate_structure_confidence", "immediate_structure", "immediate_structure_confidence",
+              "bullish_displacement_score", "bearish_displacement_score", "breakout_state", "breakout_quality_score",
+              "acceptance_state", "structural_range_percentile", "premium_discount_state", "trend_maturity",
+              "momentum_deterioration_score", "compression_score", "expansion_state", "false_break_risk_score",
+              "long_room_score", "short_room_score", "context_conflict_score", "context_quality_score",
+              "long_context_score", "short_context_score", "directional_permission", "permission_confidence"):
+        setattr(snap, k, g(k))
+    snap.retracement_depth = g("retracement_depth")
+    snap.permission_reason_codes = list(cr.get("permission_reason_codes") or [])
+    snap.hard_blockers = list(cr.get("hard_blockers") or [])
+    snap.active_structural_leg = to_jsonable(cd.get("active_leg"))
+    liq = cd.get("liquidity") or {}
+    snap.liquidity_context = to_jsonable({k: v for k, v in liq.items() if k != "latest_sweep"}) if liq else None
+    snap.latest_liquidity_sweep = to_jsonable(liq.get("latest_sweep")) if liq else None
+    oz = cd.get("origin_zones") or {}
+    snap.nearest_supply_zone = to_jsonable(oz.get("nearest_supply"))
+    snap.nearest_demand_zone = to_jsonable(oz.get("nearest_demand"))
+    snap.zone_freshness = {"supply": g("supply_zone_freshness"), "demand": g("demand_zone_freshness")}
+    snap.context_state = {k: g(k) for k in ("context_state", "previous_context_state", "bars_in_state",
+                                            "state_changed_at", "state_transition_expected", "state_changes_in_window")}
+    snap.context = to_jsonable({**cd, "context_reason_codes": list(cr.get("context_reason_codes") or []),
+                                "context_error": cr.get("context_error")})

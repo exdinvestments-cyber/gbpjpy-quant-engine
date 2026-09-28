@@ -78,11 +78,59 @@ def explain(snap: H4Snapshot, max_zones: int = 6) -> str:
             f"touches {z['interactions']} rejections {z['rejections']} breaks {z['breaks']} "
             f"dist {z['distance_atr']:.2f} ATR sources {','.join(z['sources'])}"
         )
+    if snap.directional_permission is not None:
+        lines += ["", *permission_lines(snap)]
     lines += ["", "REASON CODES"]
     lines += [f"  {c:<32} {describe(c)}" for c in snap.reason_codes]
     if snap.warnings:
         lines += ["", "WARNINGS"] + [f"  {w}" for w in snap.warnings]
     return "\n".join(lines)
+
+
+def permission_lines(snap: H4Snapshot) -> list[str]:
+    ctx = snap.context or {}
+    e = ctx.get("permission_explanation") or {}
+    bo = ctx.get("breakout") or {}
+    lines = [
+        f"H4 CONTEXT      state {(snap.context_state or {}).get('context_state')} "
+        f"(prev {(snap.context_state or {}).get('previous_context_state')}, "
+        f"{(snap.context_state or {}).get('bars_in_state')} bars)",
+        f"  structure     primary {snap.primary_structure} ({_f(snap.primary_structure_confidence, 0)}) | "
+        f"intermediate {snap.intermediate_structure} ({_f(snap.intermediate_structure_confidence, 0)}) | "
+        f"immediate {snap.immediate_structure} ({_f(snap.immediate_structure_confidence, 0)})",
+        f"  active leg    {(snap.active_structural_leg or {}).get('direction')} "
+        f"{(snap.active_structural_leg or {}).get('classification')}  retracement {_f(snap.retracement_depth, 1)}%",
+        f"  displacement  bull {_f(snap.bullish_displacement_score, 0)} / bear {_f(snap.bearish_displacement_score, 0)}",
+        f"  breakout      {bo.get('direction')} {snap.breakout_state} quality {_f(snap.breakout_quality_score, 0)} "
+        f"acceptance {snap.acceptance_state} false-break risk {_f(snap.false_break_risk_score, 0)}",
+        f"  liquidity     latest sweep {(snap.latest_liquidity_sweep or {}).get('side')} "
+        f"{(snap.latest_liquidity_sweep or {}).get('state')}",
+        f"  location      {snap.premium_discount_state} ({_f(snap.structural_range_percentile, 1)}%)  maturity "
+        f"{snap.trend_maturity}  deterioration {_f(snap.momentum_deterioration_score, 0)}  compression "
+        f"{_f(snap.compression_score, 0)} ({snap.expansion_state})",
+        f"  room          long {_f(snap.long_room_score, 0)}  short {_f(snap.short_room_score, 0)}",
+        f"  scores        LONG {_f(snap.long_context_score, 1)}  SHORT {_f(snap.short_context_score, 1)}  "
+        f"conflict {_f(snap.context_conflict_score, 1)}  quality {_f(snap.context_quality_score, 1)}",
+        "",
+        f"DIRECTIONAL PERMISSION  {snap.directional_permission}   confidence {_f(snap.permission_confidence, 1)}"
+        "   (what H1 may SEARCH for - not a trade signal, not a sizing input)",
+        "  evidence:     " + (", ".join(e.get("evidence") or []) or "none"),
+        "  against:      " + (", ".join(e.get("against") or []) or "none"),
+        "  blockers:     " + (", ".join(snap.hard_blockers) or "none"),
+    ]
+    for side in ("long", "short"):
+        failed = (e.get("failed_requirements") or {}).get(side) or []
+        if failed:
+            lines.append(f"  {side} unmet:   " + "; ".join(failed))
+    return lines
+
+
+def explain_permission(result: H4AnalysisResult, timestamp=None) -> str:
+    """Plain-language answer to 'why was H1 allowed / not allowed to search at this bar?'."""
+    snap = result.latest() if timestamp is None else result.snapshot(timestamp)
+    head = f"GBPJPY H4 bar opened {snap.timestamp} (known at {snap.available_at})"
+    return "\n".join([head, *permission_lines(snap), "", "PERMISSION REASON CODES",
+                      *[f"  {c:<34} {describe(c)}" for c in snap.permission_reason_codes]])
 
 
 def inspect(result: H4AnalysisResult, timestamp=None) -> str:

@@ -31,6 +31,7 @@ connection code and no order functionality.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
 import pandas as pd
@@ -55,3 +56,36 @@ def assert_canonical(df: pd.DataFrame) -> None:
     tz = getattr(df["timestamp"].dt, "tz", None) if len(df) else getattr(df["timestamp"].dtype, "tz", None)
     if tz is None:
         raise DataIntegrityError("canonical timestamps must be timezone-aware (UTC)")
+
+
+@runtime_checkable
+class TickSource(Protocol):
+    """Future: quotes for spread/market-quality monitoring (not used by Phase 1A/1B)."""
+
+    def ticks(self, start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame:
+        """Return UTC tz-aware ``time, bid, ask`` rows in [start, end)."""
+        ...
+
+
+@dataclass(frozen=True)
+class IntrabarObservation:
+    """Broker-neutral lower-timeframe evidence about one completed H4 bar."""
+
+    bar_open: pd.Timestamp
+    traded_back_through_level: bool | None = None
+    time_beyond_level_minutes: float | None = None
+    source: str = "none"
+
+
+@runtime_checkable
+class IntrabarProvider(Protocol):
+    """Extension point for future M1/M5/tick providers.
+
+    The Phase 1B breakout analysis accepts optional intrabar evidence
+    (``context.breakouts.IntrabarEvidence``) and today runs with none, using
+    completed H4 bars only.  A provider must only describe bars that have
+    CLOSED at evaluation time.
+    """
+
+    def observe(self, bar_open: pd.Timestamp, level: float, direction: str) -> IntrabarObservation:
+        ...

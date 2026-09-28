@@ -307,6 +307,208 @@ class BiasConfig:
     conflict_level: float = _p(35.0, "If BOTH evidence scores are at/above this, bias is NEUTRAL with BIAS_CONFLICT.")
 
 
+# ---------------------------------------------------------------------------
+# Phase 1B - H4 context and directional permission
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class HierarchyConfig:
+    primary_swings: int = _p(16, "Confirmed swings (most recent) interpreted for PRIMARY structure (<= swing_history_size).")
+    intermediate_swings: int = _p(8, "Confirmed swings interpreted for INTERMEDIATE structure.")
+    immediate_swings: int = _p(4, "Confirmed swings interpreted for IMMEDIATE structure (plus the current close).")
+    consistency_threshold: float = _p(
+        0.60, "Recency-weighted share of labels (HH/HL or LH/LL) required for a BULLISH/BEARISH layer."
+    )
+    recency_weight_ratio: float = _p(
+        2.0,
+        "Linear recency weighting: the newest swing in a window weighs this many times the oldest (weights rise "
+        "linearly in between). 1.0 = equal weights. Documented, not exponential, not fitted.",
+    )
+    range_band_atr: float = _p(1.5, "Swing highs and swing lows each spanning <= this many ATR classify the window as RANGING.")
+    protected_break_atr: float = _p(
+        0.25, "A close beyond the protected swing (the low/high that launched the latest HH/LL) by this many ATR makes the layer TRANSITIONAL."
+    )
+    provisional_break_atr: float = _p(
+        0.10, "IMMEDIATE layer only: a close beyond the latest swing high/low by this many ATR counts as a provisional HH/LL."
+    )
+
+
+@dataclass(frozen=True)
+class LegConfig:
+    strong_impulse_score: float = _p(70.0, "impulse_score at/above which a with-structure leg is STRONG_IMPULSE.")
+    normal_impulse_score: float = _p(55.0, "impulse_score at/above which a with-structure leg is NORMAL_IMPULSE (below: WEAK_IMPULSE).")
+    impulsive_score: float = _p(55.0, "impulse_score at/above which a leg's nature is IMPULSIVE.")
+    corrective_score: float = _p(40.0, "impulse_score below which a leg's nature is CORRECTIVE (in between: MIXED).")
+    healthy_correction_ratio: float = _p(
+        0.60, "Counter-structure leg length / preceding leg length at/below which a correction is HEALTHY (descriptive band)."
+    )
+    choppy_efficiency: float = _p(0.30, "Correction directional efficiency below which it is CHOPPY_CORRECTION.")
+    choppy_overlap: float = _p(0.60, "Mean candle overlap above which a correction is CHOPPY_CORRECTION.")
+
+
+@dataclass(frozen=True)
+class DisplacementConfig:
+    window: int = _p(3, "Bars in the multi-candle displacement window (a single candle alone is never enough).")
+    percentile_lookback: int = _p(500, "Trailing bars for the displacement-magnitude percentile.")
+    min_multi_bar_atr: float = _p(1.5, "Net multi-bar move (ATR before the window) required for STRONG/EXTREME displacement.")
+    min_directional_closes: int = _p(2, "Directional closes in the window required for STRONG/EXTREME displacement.")
+    min_efficiency: float = _p(0.5, "Window directional efficiency required for STRONG/EXTREME displacement.")
+    weak_score: float = _p(20.0, "Score at/above which displacement is WEAK (below: NONE).")
+    moderate_score: float = _p(40.0, "Score at/above which displacement is MODERATE.")
+    strong_score: float = _p(60.0, "Score at/above which displacement is STRONG.")
+    extreme_score: float = _p(80.0, "Score at/above which displacement is EXTREME.")
+    recent_bars: int = _p(6, "Bars over which the most recent displacement is considered 'recent' context.")
+
+
+@dataclass(frozen=True)
+class BreakoutContextConfig:
+    importance_norm_atr: float = _p(3.0, "Swing significance (ATR) mapping to full level-importance.")
+    retest_tolerance_atr: float = _p(0.30, "A bar trading back within this many ATR of a broken level (and closing beyond it) is a retest.")
+    acceptance_min_closes: int = _p(3, "Closes beyond the level after the break that count as multi-close acceptance evidence.")
+    high_quality_score: float = _p(70.0, "breakout_quality_score at/above which a break is HIGH_QUALITY_BREAK.")
+    moderate_quality_score: float = _p(50.0, "breakout_quality_score at/above which a break is MODERATE_BREAK.")
+    weak_quality_score: float = _p(30.0, "breakout_quality_score at/above which a break is WEAK_BREAK (below: FALSE_BREAK_CANDIDATE).")
+    high_false_break_risk: float = _p(60.0, "false_break_risk_score at/above which HIGH_FALSE_BREAK_RISK is raised.")
+    opposing_zone_atr: float = _p(1.0, "A strong opposing zone within this many ATR beyond a broken level adds false-break risk.")
+
+
+@dataclass(frozen=True)
+class LiquidityConfig:
+    lookback_bars: int = _p(200, "Swings (by pivot bar) within this many bars can be liquidity references.")
+    equal_tol_atr: float = _p(0.15, "Swing extremes within this many ATR form an EQUAL_HIGHS/EQUAL_LOWS cluster.")
+    near_equal_tol_atr: float = _p(0.35, "Swing extremes within this many ATR (but not equal) form a NEAR_EQUAL cluster.")
+    min_penetration_atr: float = _p(0.02, "Minimum trade beyond a reference (ATR) to count as a penetration.")
+    max_sweep_penetration_atr: float = _p(2.0, "Penetration (ATR) at which a move is no longer sweep-like (score component reaches 0).")
+    accept_close_atr: float = _p(0.25, "A close beyond the reference by this many ATR resolves the event as BREAK_AND_ACCEPT.")
+    resolve_bars: int = _p(3, "Bars after penetration with every close back inside before SWEEP_AND_REJECT is declared.")
+    monitor_bars: int = _p(12, "Bars after penetration during which a sweep event can still change state; then frozen.")
+    sweep_memory_bars: int = _p(12, "A sweep contributes to bullish/bearish sweep scores for this many bars after penetration.")
+
+
+@dataclass(frozen=True)
+class OriginZoneConfig:
+    min_displacement_score: float = _p(60.0, "Displacement score (STRONG) that qualifies an origin zone.")
+    origin_bars: int = _p(2, "Bars immediately preceding the displacement window that form the origin zone.")
+    max_width_atr: float = _p(2.5, "Origin zones wider than this many ATR at creation are not created (not a compact origin).")
+    max_age_bars: int = _p(300, "Origin zones older than this are retired (ageing).")
+    lightly_tested: int = _p(1, "Interactions at/below which a zone is LIGHTLY_TESTED (0 = FRESH).")
+    tested: int = _p(3, "Interactions at/below which a zone is TESTED (above: HEAVILY_TESTED).")
+
+
+@dataclass(frozen=True)
+class RoleReversalConfig:
+    acceptance_closes: int = _p(2, "Consecutive closes beyond a crossed zone required before a role reversal can be considered.")
+    retest_window_bars: int = _p(30, "Bars after acceptance within which a retest must occur.")
+    reaction_atr: float = _p(0.5, "Move away from the zone after a retest (ATR) confirming the new role.")
+
+
+@dataclass(frozen=True)
+class LocationContextConfig:
+    min_range_atr: float = _p(1.5, "Structural range (latest swing high - latest swing low) must be at least this many ATR to be valid.")
+    deep_discount_pct: float = _p(20.0, "Range percentile below which location is DEEP_DISCOUNT.")
+    discount_pct: float = _p(45.0, "Range percentile below which location is DISCOUNT.")
+    premium_pct: float = _p(55.0, "Range percentile above which location is PREMIUM (45-55 = EQUILIBRIUM).")
+    deep_premium_pct: float = _p(80.0, "Range percentile above which location is DEEP_PREMIUM.")
+    shallow_retracement_pct: float = _p(30.0, "Retracement below this % of the active impulse is SHALLOW (descriptive band, not Fibonacci).")
+    normal_retracement_pct: float = _p(55.0, "Retracement below this % is NORMAL.")
+    deep_retracement_pct: float = _p(80.0, "Retracement below this % is DEEP (at/above: VERY_DEEP).")
+
+
+@dataclass(frozen=True)
+class MaturityConfig:
+    impulses_full: int = _p(5, "Number of with-trend impulses mapping to full maturity contribution.")
+    distance_full_atr: float = _p(15.0, "Cumulative with-trend distance (ATR) mapping to full maturity contribution.")
+    duration_full_bars: int = _p(150, "Trend duration (bars) mapping to full maturity contribution.")
+    developing_score: float = _p(0.35, "Maturity score at/above which a trend is DEVELOPING (below and >1 impulse: EARLY).")
+    mature_score: float = _p(0.60, "Maturity score at/above which a trend is MATURE.")
+    extended_score: float = _p(0.80, "Maturity score at/above which a trend is EXTENDED.")
+    exhaustion_deterioration: float = _p(60.0, "Momentum deterioration at/above which MATURE/EXTENDED becomes EXHAUSTION_RISK.")
+    deterioration_high: float = _p(60.0, "momentum_deterioration_score at/above which MOMENTUM_DETERIORATING is raised.")
+
+
+@dataclass(frozen=True)
+class CompressionConfig:
+    amplitude_swings: int = _p(6, "Most recent swings whose amplitude trend is measured.")
+    range_short: int = _p(10, "Short window (bars) for mean candle range.")
+    range_long: int = _p(50, "Long window (bars) for mean candle range.")
+    compression_threshold: float = _p(60.0, "compression_score at/above which compression is present.")
+    min_compression_bars: int = _p(4, "Consecutive compression bars forming a compression episode.")
+    expansion_window_bars: int = _p(3, "Bars after a compression episode ends within which a displacement/break counts as expansion.")
+    expansion_track_bars: int = _p(20, "Bars an expansion event is tracked for acceptance/failure.")
+    expansion_range_ratio: float = _p(
+        1.5, "An expansion bar's range must be at least this multiple of the mean bar range during the compression episode."
+    )
+
+
+@dataclass(frozen=True)
+class RoomConfig:
+    min_room_atr: float = _p(0.5, "Distance (ATR) to the nearest opposing barrier mapping to room score 0.")
+    full_room_atr: float = _p(4.0, "Distance (ATR) to the nearest opposing barrier mapping to room score 100.")
+    sufficient_room_score: float = _p(40.0, "Room score at/above which SUFFICIENT_*_ROOM is raised (below: INSUFFICIENT).")
+
+
+@dataclass(frozen=True)
+class ContextScoringConfig:
+    q_structure: float = _p(0.20, "Context-quality family weight: STRUCTURE.")
+    q_displacement: float = _p(0.10, "Context-quality family weight: DISPLACEMENT.")
+    q_momentum: float = _p(0.10, "Context-quality family weight: MOMENTUM.")
+    q_volatility: float = _p(0.15, "Context-quality family weight: VOLATILITY.")
+    q_location: float = _p(0.10, "Context-quality family weight: LOCATION.")
+    q_liquidity: float = _p(0.10, "Context-quality family weight: LIQUIDITY_CONTEXT.")
+    q_room: float = _p(0.10, "Context-quality family weight: ROOM_TO_MOVE.")
+    q_market_quality: float = _p(0.15, "Context-quality family weight: MARKET_QUALITY.")
+    d_structure: float = _p(0.35, "Directional family weight: structure (primary/intermediate/immediate hierarchy).")
+    d_continuation: float = _p(0.15, "Directional family weight: continuation behaviour (pullback health, accepted breaks).")
+    d_displacement: float = _p(0.15, "Directional family weight: recent displacement.")
+    d_level_behaviour: float = _p(0.10, "Directional family weight: support/resistance, role reversal and origin-zone behaviour.")
+    d_liquidity: float = _p(0.10, "Directional family weight: rejected liquidity sweeps.")
+    d_room: float = _p(0.15, "Directional family weight: room to move.")
+    penalty_opposing_level: float = _p(0.30, "Directional score multiplier reduction when room in that direction is insufficient.")
+    penalty_extension: float = _p(0.20, "Reduction when extremely extended in that direction.")
+    penalty_failed_break: float = _p(0.30, "Reduction after a recent FAILED break in that direction.")
+    penalty_transition: float = _p(0.20, "Reduction when structure is transitioning against that direction.")
+    penalty_severe_chop: float = _p(0.40, "Reduction under severe chop.")
+    penalty_conflict: float = _p(0.50, "Reduction = penalty_conflict x context_conflict_score/100.")
+    high_conflict: float = _p(50.0, "context_conflict_score at/above which HIGH_CONTEXT_CONFLICT is raised.")
+    low_conflict: float = _p(20.0, "context_conflict_score below which LOW_CONTEXT_CONFLICT is raised.")
+    low_quality: float = _p(40.0, "context_quality_score below which LOW_CONTEXT_QUALITY is raised.")
+
+
+@dataclass(frozen=True)
+class PermissionConfig:
+    min_context_score: float = _p(55.0, "long/short_context_score required before that direction may be permitted.")
+    transition_min_context_score: float = _p(65.0, "Higher requirement when the regime is TRANSITION or UNCLEAR.")
+    min_room_score: float = _p(35.0, "Room score required in the permitted direction.")
+    max_conflict: float = _p(55.0, "context_conflict_score above which no direction is permitted.")
+    min_quality: float = _p(45.0, "context_quality_score required for any permission.")
+    both_separation: float = _p(
+        15.0, "If both directions qualify and their scores differ by at least this much, only the stronger is permitted."
+    )
+    allow_both_regimes: tuple = _p(
+        ("RANGE", "HIGH_VOLATILITY_RANGE"),
+        "Regimes in which ALLOW_BOTH is possible (two-way range context). Elsewhere two-way qualification -> BLOCK_ALL.",
+    )
+
+
+@dataclass(frozen=True)
+class BlockerConfig:
+    block_invalid_data: bool = _p(True, "INVALID_DATA blocker: bar carries ERROR-level data issues.")
+    block_insufficient_history: bool = _p(True, "INSUFFICIENT_HISTORY blocker: warm-up incomplete.")
+    gap_block_bars: int = _p(6, "UNRESOLVED_DATA_GAP blocker for this many bars after a MISSING_BARS/abnormal-gap flag (0 disables).")
+    shock_block_severity: float = _p(85.0, "EXTREME_VOLATILITY_SHOCK blocker when shock_severity on the bar is at/above this.")
+    block_severe_chop: bool = _p(True, "SEVERE_CHOP blocker when market quality is severe_chop.")
+    block_unclassifiable_structure: bool = _p(True, "UNCLASSIFIABLE_STRUCTURE blocker when primary AND intermediate are UNCLEAR.")
+    stale_after_hours: float = _p(
+        12.0, "STALE_DATA blocker (latest bar only, when an as_of time is supplied): as_of - bar close exceeds this."
+    )
+
+
+@dataclass(frozen=True)
+class ContextStateConfig:
+    flip_window_bars: int = _p(20, "Trailing bars over which context-state changes are counted (temporal stability).")
+
+
 @dataclass(frozen=True)
 class H4Config:
     data: DataConfig = field(default_factory=DataConfig)
@@ -328,6 +530,21 @@ class H4Config:
     sessions: SessionConfig = field(default_factory=SessionConfig)
     regime: RegimeConfig = field(default_factory=RegimeConfig)
     bias: BiasConfig = field(default_factory=BiasConfig)
+    hierarchy: HierarchyConfig = field(default_factory=HierarchyConfig)
+    legs: LegConfig = field(default_factory=LegConfig)
+    displacement: DisplacementConfig = field(default_factory=DisplacementConfig)
+    breakout_context: BreakoutContextConfig = field(default_factory=BreakoutContextConfig)
+    liquidity: LiquidityConfig = field(default_factory=LiquidityConfig)
+    origin_zones: OriginZoneConfig = field(default_factory=OriginZoneConfig)
+    role_reversal: RoleReversalConfig = field(default_factory=RoleReversalConfig)
+    location_context: LocationContextConfig = field(default_factory=LocationContextConfig)
+    maturity: MaturityConfig = field(default_factory=MaturityConfig)
+    compression: CompressionConfig = field(default_factory=CompressionConfig)
+    room: RoomConfig = field(default_factory=RoomConfig)
+    context_scoring: ContextScoringConfig = field(default_factory=ContextScoringConfig)
+    permission: PermissionConfig = field(default_factory=PermissionConfig)
+    blockers: BlockerConfig = field(default_factory=BlockerConfig)
+    context_state: ContextStateConfig = field(default_factory=ContextStateConfig)
 
     # ------------------------------------------------------------------
     def to_dict(self) -> dict:
@@ -355,6 +572,9 @@ class H4Config:
             raise ValueError("structure.swing_history_size must be >= 4 and >= structure.quality_swings")
         if not (1 <= st.break_confirm_bars <= st.break_accept_bars <= st.break_monitor_bars):
             raise ValueError("require 1 <= break_confirm_bars <= break_accept_bars <= break_monitor_bars")
+        hc = self.hierarchy
+        if not (2 <= hc.immediate_swings <= hc.intermediate_swings <= hc.primary_swings <= st.swing_history_size):
+            raise ValueError("require 2 <= immediate <= intermediate <= primary swings <= structure.swing_history_size")
         b = self.bias
         if min(b.structure_weight, b.trend_weight, b.momentum_weight) < 0:
             raise ValueError("bias family weights must be non-negative")

@@ -80,6 +80,80 @@ class ReasonCode(str, Enum):
     # data / engine
     INSUFFICIENT_HISTORY = "INSUFFICIENT_HISTORY"
     DATA_QUALITY_WARNING = "DATA_QUALITY_WARNING"
+    # ---- Phase 1B: context and directional permission ----
+    PRIMARY_STRUCTURE_BULLISH = "PRIMARY_STRUCTURE_BULLISH"
+    PRIMARY_STRUCTURE_BEARISH = "PRIMARY_STRUCTURE_BEARISH"
+    PRIMARY_STRUCTURE_RANGING = "PRIMARY_STRUCTURE_RANGING"
+    PRIMARY_STRUCTURE_TRANSITIONAL = "PRIMARY_STRUCTURE_TRANSITIONAL"
+    PRIMARY_STRUCTURE_NEUTRAL = "PRIMARY_STRUCTURE_NEUTRAL"
+    PRIMARY_STRUCTURE_UNCLEAR = "PRIMARY_STRUCTURE_UNCLEAR"
+    INTERMEDIATE_STRUCTURE_BULLISH = "INTERMEDIATE_STRUCTURE_BULLISH"
+    INTERMEDIATE_STRUCTURE_BEARISH = "INTERMEDIATE_STRUCTURE_BEARISH"
+    IMMEDIATE_STRUCTURE_BULLISH = "IMMEDIATE_STRUCTURE_BULLISH"
+    IMMEDIATE_STRUCTURE_BEARISH = "IMMEDIATE_STRUCTURE_BEARISH"
+    PROTECTED_LOW_BROKEN = "PROTECTED_LOW_BROKEN"
+    PROTECTED_HIGH_BROKEN = "PROTECTED_HIGH_BROKEN"
+    HEALTHY_PULLBACK = "HEALTHY_PULLBACK"
+    DEEP_PULLBACK = "DEEP_PULLBACK"
+    CHOPPY_PULLBACK = "CHOPPY_PULLBACK"
+    STRUCTURAL_TRANSITION = "STRUCTURAL_TRANSITION"
+    STRONG_BULLISH_DISPLACEMENT = "STRONG_BULLISH_DISPLACEMENT"
+    STRONG_BEARISH_DISPLACEMENT = "STRONG_BEARISH_DISPLACEMENT"
+    BULLISH_BREAK_ACCEPTED = "BULLISH_BREAK_ACCEPTED"
+    BEARISH_BREAK_ACCEPTED = "BEARISH_BREAK_ACCEPTED"
+    BULLISH_FAILED_BREAK = "BULLISH_FAILED_BREAK"
+    BEARISH_FAILED_BREAK = "BEARISH_FAILED_BREAK"
+    HIGH_QUALITY_BREAK = "HIGH_QUALITY_BREAK"
+    BREAK_REJECTING = "BREAK_REJECTING"
+    DOWNSIDE_LIQUIDITY_SWEEP = "DOWNSIDE_LIQUIDITY_SWEEP"
+    UPSIDE_LIQUIDITY_SWEEP = "UPSIDE_LIQUIDITY_SWEEP"
+    LIQUIDITY_BREAK_ACCEPTED = "LIQUIDITY_BREAK_ACCEPTED"
+    BULLISH_ROLE_REVERSAL = "BULLISH_ROLE_REVERSAL"
+    BEARISH_ROLE_REVERSAL = "BEARISH_ROLE_REVERSAL"
+    STRONG_SUPPORT_NEARBY = "STRONG_SUPPORT_NEARBY"
+    STRONG_RESISTANCE_NEARBY = "STRONG_RESISTANCE_NEARBY"
+    DEMAND_ZONE_REACTION = "DEMAND_ZONE_REACTION"
+    SUPPLY_ZONE_REACTION = "SUPPLY_ZONE_REACTION"
+    SUFFICIENT_LONG_ROOM = "SUFFICIENT_LONG_ROOM"
+    INSUFFICIENT_LONG_ROOM = "INSUFFICIENT_LONG_ROOM"
+    SUFFICIENT_SHORT_ROOM = "SUFFICIENT_SHORT_ROOM"
+    INSUFFICIENT_SHORT_ROOM = "INSUFFICIENT_SHORT_ROOM"
+    TREND_EARLY = "TREND_EARLY"
+    TREND_EXTENDED = "TREND_EXTENDED"
+    EXHAUSTION_RISK = "EXHAUSTION_RISK"
+    MOMENTUM_DETERIORATING = "MOMENTUM_DETERIORATING"
+    COMPRESSION_PRESENT = "COMPRESSION_PRESENT"
+    EXPANSION_FROM_COMPRESSION = "EXPANSION_FROM_COMPRESSION"
+    HIGH_FALSE_BREAK_RISK = "HIGH_FALSE_BREAK_RISK"
+    HIGH_CONTEXT_CONFLICT = "HIGH_CONTEXT_CONFLICT"
+    LOW_CONTEXT_CONFLICT = "LOW_CONTEXT_CONFLICT"
+    LOW_CONTEXT_QUALITY = "LOW_CONTEXT_QUALITY"
+    CONFLICT_PRIMARY_VS_DISPLACEMENT = "CONFLICT_PRIMARY_VS_DISPLACEMENT"
+    CONFLICT_TREND_VS_OPPOSING_LEVEL = "CONFLICT_TREND_VS_OPPOSING_LEVEL"
+    CONFLICT_STRUCTURE_VS_FAILED_BREAK = "CONFLICT_STRUCTURE_VS_FAILED_BREAK"
+    CONFLICT_TREND_VS_EXTENSION = "CONFLICT_TREND_VS_EXTENSION"
+    CONFLICT_STRUCTURE_VS_SHOCK = "CONFLICT_STRUCTURE_VS_SHOCK"
+    CONFLICT_HIERARCHY_DISAGREEMENT = "CONFLICT_HIERARCHY_DISAGREEMENT"
+    CONFLICT_STRUCTURE_VS_TREND_ENGINE = "CONFLICT_STRUCTURE_VS_TREND_ENGINE"
+    CONFLICT_OPPOSING_SWEEP = "CONFLICT_OPPOSING_SWEEP"
+    CONFLICT_FALSE_BREAK_RISK = "CONFLICT_FALSE_BREAK_RISK"
+    LONG_PERMISSION_GRANTED = "LONG_PERMISSION_GRANTED"
+    SHORT_PERMISSION_GRANTED = "SHORT_PERMISSION_GRANTED"
+    BOTH_DIRECTIONS_ALLOWED = "BOTH_DIRECTIONS_ALLOWED"
+    ALL_DIRECTIONS_BLOCKED = "ALL_DIRECTIONS_BLOCKED"
+    LONG_CONTEXT_INSUFFICIENT = "LONG_CONTEXT_INSUFFICIENT"
+    SHORT_CONTEXT_INSUFFICIENT = "SHORT_CONTEXT_INSUFFICIENT"
+    CONTEXT_QUALITY_TOO_LOW = "CONTEXT_QUALITY_TOO_LOW"
+    CONTEXT_CONFLICT_TOO_HIGH = "CONTEXT_CONFLICT_TOO_HIGH"
+    TWO_WAY_CONTEXT_OUTSIDE_RANGE = "TWO_WAY_CONTEXT_OUTSIDE_RANGE"
+    BLOCKER_INVALID_DATA = "BLOCKER_INVALID_DATA"
+    BLOCKER_STALE_DATA = "BLOCKER_STALE_DATA"
+    BLOCKER_INSUFFICIENT_HISTORY = "BLOCKER_INSUFFICIENT_HISTORY"
+    BLOCKER_UNRESOLVED_DATA_GAP = "BLOCKER_UNRESOLVED_DATA_GAP"
+    BLOCKER_EXTREME_VOLATILITY_SHOCK = "BLOCKER_EXTREME_VOLATILITY_SHOCK"
+    BLOCKER_SEVERE_CHOP = "BLOCKER_SEVERE_CHOP"
+    BLOCKER_UNCLASSIFIABLE_STRUCTURE = "BLOCKER_UNCLASSIFIABLE_STRUCTURE"
+    BLOCKER_CONTEXT_ERROR = "BLOCKER_CONTEXT_ERROR"
 
     def __str__(self) -> str:  # pragma: no cover - cosmetic
         return self.value
@@ -147,6 +221,79 @@ REASON_DESCRIPTIONS: dict[str, str] = {
     "BIAS_REGIME_CONTRADICTS": "evidence direction contradicts the regime",
     "INSUFFICIENT_HISTORY": "warm-up period: not enough history for reliable features",
     "DATA_QUALITY_WARNING": "input bar carries data-quality warnings",
+    "PRIMARY_STRUCTURE_BULLISH": "primary (full swing history) structure is bullish",
+    "PRIMARY_STRUCTURE_BEARISH": "primary (full swing history) structure is bearish",
+    "PRIMARY_STRUCTURE_RANGING": "primary structure is ranging",
+    "PRIMARY_STRUCTURE_TRANSITIONAL": "primary structure is transitioning",
+    "PRIMARY_STRUCTURE_NEUTRAL": "primary structure is neutral / mixed",
+    "PRIMARY_STRUCTURE_UNCLEAR": "primary structure cannot be classified (insufficient confirmed swings)",
+    "INTERMEDIATE_STRUCTURE_BULLISH": "intermediate structure is bullish",
+    "INTERMEDIATE_STRUCTURE_BEARISH": "intermediate structure is bearish",
+    "IMMEDIATE_STRUCTURE_BULLISH": "immediate structure is bullish",
+    "IMMEDIATE_STRUCTURE_BEARISH": "immediate structure is bearish",
+    "PROTECTED_LOW_BROKEN": "close below the protected swing low of a bullish structure",
+    "PROTECTED_HIGH_BROKEN": "close above the protected swing high of a bearish structure",
+    "HEALTHY_PULLBACK": "counter-structure correction is healthy (moderate depth, not choppy)",
+    "DEEP_PULLBACK": "counter-structure correction is deep",
+    "CHOPPY_PULLBACK": "counter-structure correction is choppy / overlapping",
+    "STRUCTURAL_TRANSITION": "structural layers indicate a transition",
+    "STRONG_BULLISH_DISPLACEMENT": "strong multi-candle bullish displacement (recent)",
+    "STRONG_BEARISH_DISPLACEMENT": "strong multi-candle bearish displacement (recent)",
+    "BULLISH_BREAK_ACCEPTED": "recent bullish structural break is being accepted",
+    "BEARISH_BREAK_ACCEPTED": "recent bearish structural break is being accepted",
+    "BULLISH_FAILED_BREAK": "a recent bullish structural break FAILED or was invalidated",
+    "BEARISH_FAILED_BREAK": "a recent bearish structural break FAILED or was invalidated",
+    "HIGH_QUALITY_BREAK": "most recent structural break is high quality",
+    "BREAK_REJECTING": "price is rejecting the most recent structural break",
+    "DOWNSIDE_LIQUIDITY_SWEEP": "potential downside liquidity reference swept and rejected (bullish context)",
+    "UPSIDE_LIQUIDITY_SWEEP": "potential upside liquidity reference swept and rejected (bearish context)",
+    "LIQUIDITY_BREAK_ACCEPTED": "a liquidity reference was broken and the move accepted (continuation, not a sweep)",
+    "BULLISH_ROLE_REVERSAL": "former resistance zone confirmed as support (break, acceptance, retest, reaction)",
+    "BEARISH_ROLE_REVERSAL": "former support zone confirmed as resistance",
+    "STRONG_SUPPORT_NEARBY": "strong support zone close below price",
+    "STRONG_RESISTANCE_NEARBY": "strong resistance zone close above price",
+    "DEMAND_ZONE_REACTION": "price reacted from a bullish displacement-origin zone",
+    "SUPPLY_ZONE_REACTION": "price reacted from a bearish displacement-origin zone",
+    "SUFFICIENT_LONG_ROOM": "sufficient structural room above price",
+    "INSUFFICIENT_LONG_ROOM": "insufficient structural room above price",
+    "SUFFICIENT_SHORT_ROOM": "sufficient structural room below price",
+    "INSUFFICIENT_SHORT_ROOM": "insufficient structural room below price",
+    "TREND_EARLY": "current directional move is early",
+    "TREND_EXTENDED": "current directional move is extended",
+    "EXHAUSTION_RISK": "extended/mature move with deteriorating momentum",
+    "MOMENTUM_DETERIORATING": "directional quality is deteriorating (smaller impulses, deeper corrections, slower)",
+    "COMPRESSION_PRESENT": "structural compression present (no directional implication)",
+    "EXPANSION_FROM_COMPRESSION": "directional expansion out of a compression episode",
+    "HIGH_FALSE_BREAK_RISK": "most recent break carries high false-break risk",
+    "HIGH_CONTEXT_CONFLICT": "context evidence materially conflicts",
+    "LOW_CONTEXT_CONFLICT": "context evidence is coherent",
+    "LOW_CONTEXT_QUALITY": "context quality is low",
+    "CONFLICT_PRIMARY_VS_DISPLACEMENT": "primary structure opposed by strong recent displacement",
+    "CONFLICT_TREND_VS_OPPOSING_LEVEL": "directional structure faces a strong opposing level immediately ahead",
+    "CONFLICT_STRUCTURE_VS_FAILED_BREAK": "structure opposed by a failed break in its own direction",
+    "CONFLICT_TREND_VS_EXTENSION": "directional structure is extremely extended",
+    "CONFLICT_STRUCTURE_VS_SHOCK": "strong structure during a volatility shock",
+    "CONFLICT_HIERARCHY_DISAGREEMENT": "primary and intermediate structure disagree",
+    "CONFLICT_STRUCTURE_VS_TREND_ENGINE": "swing structure and EMA trend engine disagree",
+    "CONFLICT_OPPOSING_SWEEP": "recent liquidity sweep opposes the structural direction",
+    "CONFLICT_FALSE_BREAK_RISK": "latest break in the structural direction carries high false-break risk",
+    "LONG_PERMISSION_GRANTED": "H1 may SEARCH for long setups (context permission, not a trade signal)",
+    "SHORT_PERMISSION_GRANTED": "H1 may SEARCH for short setups (context permission, not a trade signal)",
+    "BOTH_DIRECTIONS_ALLOWED": "two-way context: H1 may search both directions",
+    "ALL_DIRECTIONS_BLOCKED": "no direction permitted",
+    "LONG_CONTEXT_INSUFFICIENT": "long context score, room or quality below requirement",
+    "SHORT_CONTEXT_INSUFFICIENT": "short context score, room or quality below requirement",
+    "CONTEXT_QUALITY_TOO_LOW": "context quality below the permission requirement",
+    "CONTEXT_CONFLICT_TOO_HIGH": "context conflict above the permission limit",
+    "TWO_WAY_CONTEXT_OUTSIDE_RANGE": "both directions qualified outside a range regime (treated as conflicting)",
+    "BLOCKER_INVALID_DATA": "hard blocker: invalid input data",
+    "BLOCKER_STALE_DATA": "hard blocker: data is stale",
+    "BLOCKER_INSUFFICIENT_HISTORY": "hard blocker: insufficient history",
+    "BLOCKER_UNRESOLVED_DATA_GAP": "hard blocker: recent unresolved data gap",
+    "BLOCKER_EXTREME_VOLATILITY_SHOCK": "hard blocker: extreme volatility shock",
+    "BLOCKER_SEVERE_CHOP": "hard blocker: severe chop",
+    "BLOCKER_UNCLASSIFIABLE_STRUCTURE": "hard blocker: structure cannot be classified",
+    "BLOCKER_CONTEXT_ERROR": "hard blocker: context computation failed (fail-safe)",
 }
 
 

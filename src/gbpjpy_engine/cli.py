@@ -18,7 +18,7 @@ import sys
 from .config import describe_config, load_config
 from .data.model import load_csv
 from .engine import H4MarketIntelligenceEngine
-from .research import explain
+from .research import explain, explain_permission
 from .synthetic import SCENARIOS, generate_scenario
 
 
@@ -45,11 +45,13 @@ def main(argv: list[str] | None = None) -> int:
     common(r)
     r.add_argument("--out", help="feature table output (.parquet/.csv/.jsonl)")
     r.add_argument("--log", help="structured JSONL evaluation log output")
+    r.add_argument("--context-out", help="Phase 1B context/permission table output (.parquet/.csv/.jsonl)")
 
     i = sub.add_parser("inspect", help="explain the evaluation of one H4 bar")
     common(i)
     i.add_argument("--timestamp", help="bar OPEN time (tz-aware ISO). Default: latest bar")
     i.add_argument("--json", action="store_true", help="print the full snapshot as JSON")
+    i.add_argument("--why", action="store_true", help="only explain the directional permission")
 
     s = sub.add_parser("synthetic", help="write a synthetic scenario CSV (engineering tests only)")
     s.add_argument("--scenario", choices=SCENARIOS, required=True)
@@ -76,11 +78,18 @@ def main(argv: list[str] | None = None) -> int:
             result.export_features(args.out)
         if args.log:
             result.write_evaluation_log(args.log)
+        if args.context_out:
+            result.export_context(args.context_out)
         print(json.dumps({"bars": len(result.features), "data_quality": result.report.summary(),
                           "regimes": result.features["regime"].value_counts().to_dict(),
-                          "bias": result.features["h4_bias"].value_counts().to_dict()}, indent=2, default=str))
+                          "bias": result.features["h4_bias"].value_counts().to_dict(),
+                          "directional_permission": result.context.frame["directional_permission"].value_counts().to_dict()},
+                         indent=2, default=str))
         return 0
     snap = result.latest() if not args.timestamp else result.snapshot(args.timestamp)
+    if args.why:
+        print(explain_permission(result, args.timestamp))
+        return 0
     print(snap.to_json() if args.json else explain(snap))
     return 0
 

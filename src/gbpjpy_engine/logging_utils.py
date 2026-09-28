@@ -49,6 +49,19 @@ class StructuredEvaluationLogger:
             "engine_version": snap.engine_version,
             "config_hash": snap.config_hash,
         }
+        if snap.directional_permission is not None:
+            rec["context"] = {
+                "directional_permission": snap.directional_permission,
+                "permission_confidence": snap.permission_confidence,
+                "permission_reason_codes": snap.permission_reason_codes,
+                "hard_blockers": snap.hard_blockers,
+                "long_context_score": snap.long_context_score, "short_context_score": snap.short_context_score,
+                "context_conflict_score": snap.context_conflict_score,
+                "context_quality_score": snap.context_quality_score,
+                "primary_structure": snap.primary_structure, "intermediate_structure": snap.intermediate_structure,
+                "immediate_structure": snap.immediate_structure, "context_state": snap.context_state,
+                "explanation": (snap.context or {}).get("permission_explanation"),
+            }
         if self.include_zones:
             rec["zones"] = snap.zones
         return rec

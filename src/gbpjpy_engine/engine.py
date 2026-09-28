@@ -32,6 +32,7 @@ from .features.context import (
     session_features,
     time_features,
 )
+from .context.engine import ContextEngine
 from .features.levels import Zone, compute_levels
 from .features.momentum import momentum_features
 from .features.structure import StructureResult, compute_structure
@@ -58,6 +59,7 @@ class H4AnalysisResult:
     zone_events: list = field(default_factory=list)  # ZoneEvent audit trail (index = bar it became known)
     invalidated_zones: list = field(default_factory=list)
     engine_version: str = __version__
+    context: object = None  # Phase 1B ContextResult (context & directional permission)
     _snapshots: dict = field(default_factory=dict, repr=False)
 
     # ------------------------------------------------------------------
@@ -80,6 +82,8 @@ class H4AnalysisResult:
                 row, self.zones_by_bar[i], self.regimes[i], self.biases[i], self.reason_codes[i],
                 self.warnings[i], self.config.data.symbol, self.engine_version, self.config.config_hash(),
                 swing_history=self.structure.history_at(i),
+                context_row=self.context.frame.iloc[i].to_dict() if self.context is not None else None,
+                context_detail=self.context.details[i] if self.context is not None else None,
             )
         return self._snapshots[i]
 
@@ -102,6 +106,19 @@ class H4AnalysisResult:
 
     def export_features(self, path: str | Path) -> Path:
         return export_frame(self.features, path)
+
+    def export_context(self, path: str | Path) -> Path:
+        """Per-bar Phase 1B context/permission table (research storage)."""
+        if self.context is None:
+            raise ValueError("context engine was not run")
+        return export_frame(self.context.frame, path)
+
+    def explain_permission(self, timestamp=None) -> dict:
+        """Exact explanation of the directional permission at a bar (default: latest)."""
+        if self.context is None:
+            raise ValueError("context engine was not run")
+        i = len(self.features) - 1 if timestamp is None else self.index_of(timestamp)
+        return self.context.explain(i)
 
 
 class H4MarketIntelligenceEngine:
@@ -201,11 +218,14 @@ class H4MarketIntelligenceEngine:
             "H4 evaluation complete: %d bars, config=%s, regimes=%s",
             len(feats), cfg.config_hash(), feats["regime"].value_counts().to_dict(),
         )
-        return H4AnalysisResult(
+        result = H4AnalysisResult(
             features=feats, structure=structure, zones_by_bar=zones_by_bar, regimes=regimes, biases=biases,
             reason_codes=all_codes, warnings=all_warn, report=report, config=cfg,
             zone_events=zone_book.events, invalidated_zones=zone_book.invalidated,
         )
+        # Phase 1B: context & directional permission, layered on top of the Phase 1A/1A.1 result
+        result.context = ContextEngine(cfg).run(result, as_of=as_of)
+        return result
 
 
 _ERROR_TYPES = {

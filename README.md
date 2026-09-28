@@ -2,9 +2,11 @@
 
 Research-grade algorithmic analysis system dedicated to **GBPJPY**.
 
-**Current phase: 1A.1 — H4 Market Intelligence Engine (hardened).** It describes the H4 environment (structure, trend,
-volatility, momentum, chop, levels, location, regime) and produces a strategic LONG / SHORT / NEUTRAL context bias
-with machine-readable reasons.
+**Current phase: 1B — H4 Context & Directional Permission Engine**, built on the Phase 1A/1A.1 H4 Market
+Intelligence Engine. It describes the H4 environment (structure hierarchy, legs, displacement, breakout lifecycle,
+liquidity, zones, location, maturity, compression, room to move) and produces a directional permission —
+`ALLOW_LONG`, `ALLOW_SHORT`, `ALLOW_BOTH` or `BLOCK_ALL` — stating what a future H1 engine may *search for*, with
+machine-readable reasons for every decision. Permission is context, not a trade signal.
 
 > This repository contains **no** order placement, broker connectivity, position sizing, H1 entry logic or
 > optimisation. Nothing here has been validated as profitable, and no performance claims are made.
@@ -20,6 +22,7 @@ python -m gbpjpy_engine run --csv gbpjpy_h4.csv --tz UTC --out output/features.p
 
 # explain one bar in plain language
 python -m gbpjpy_engine inspect --csv gbpjpy_h4.csv --tz UTC --timestamp 2024-03-01T08:00:00Z
+python -m gbpjpy_engine inspect --csv gbpjpy_h4.csv --tz UTC --why      # why is H1 allowed/blocked?
 
 # list every parameter and its purpose
 python -m gbpjpy_engine config
@@ -35,6 +38,8 @@ result = H4MarketIntelligenceEngine(load_config("config/h4_default.yaml")).run(b
 snap = result.latest()            # H4Snapshot for the most recent CLOSED bar
 print(snap.regime, snap.h4_bias, snap.bias_confidence, snap.reason_codes)
 print(inspect(result))            # human-readable explanation
+print(snap.directional_permission, snap.permission_confidence, snap.permission_reason_codes)
+print(result.explain_permission())  # exact reasons behind the latest permission
 ```
 
 CSV input needs `timestamp, open, high, low, close` and optionally `volume` and `spread`.
@@ -47,14 +52,17 @@ server time to canonical UTC bars before data reaches the engine; no adapter exi
 
 ## Documentation
 
-See [`docs/PHASE_1A_H4_MARKET_INTELLIGENCE.md`](docs/PHASE_1A_H4_MARKET_INTELLIGENCE.md) for every feature, its
-methodology, parameters, look-ahead protections, swing confirmation, regime rules, bias derivation, assumptions
-and known limitations.
+* [`docs/PHASE_1A_H4_MARKET_INTELLIGENCE.md`](docs/PHASE_1A_H4_MARKET_INTELLIGENCE.md) — features, methodology,
+  look-ahead protections, swing confirmation, regime and bias (Phase 1A / 1A.1).
+* [`docs/PHASE_1B_H4_CONTEXT_PERMISSION.md`](docs/PHASE_1B_H4_CONTEXT_PERMISSION.md) — context layer and
+  directional permission (Phase 1B).
+* [`docs/BROKER_NEUTRAL_INTERFACES.md`](docs/BROKER_NEUTRAL_INTERFACES.md) — future MT4/MT5 adapter contracts
+  (specification only).
 
 ## Layout
 
 ```
-src/gbpjpy_engine/   engine package (data, features, classification, engine, snapshot, logging, research, cli)
+src/gbpjpy_engine/   engine package (data, features, classification, context [Phase 1B], engine, snapshot, logging, research, cli)
 config/              documented baseline configuration (h4_default.yaml)
 docs/                design and methodology documentation
 tests/               unit, anti-look-ahead and synthetic-scenario tests

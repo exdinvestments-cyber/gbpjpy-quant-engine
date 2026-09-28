@@ -73,6 +73,8 @@ class Zone:
     created_index: int | None = None
     bars_since_created: int | None = None
     status: str = "active"
+    # Phase 1B (additive): ATR used when the zone's geometry was fixed, for current-volatility context.
+    formation_atr: float | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -194,7 +196,7 @@ def compute_levels_rebuild(
                     bars_since_interaction=(c - last_touch) if last_touch is not None else None,
                     age_bars=int(c - first_idx), rejections=rejections, rejection_strength=round(rej_strength, 2),
                     breaks=zone_breaks, distance=float(dist), distance_atr=float(dist / a),
-                    strength=round(min(max(float(strength), 0.0), 100.0), 2),
+                    strength=round(min(max(float(strength), 0.0), 100.0), 2), formation_atr=float(a),
                 )
             )
         zones.sort(key=lambda z: (-z.strength, z.distance))
@@ -520,6 +522,7 @@ class ZoneBook:
                 rejection_strength=round(rej_strength, 2), breaks=z.flips, distance=float(dist),
                 distance_atr=float(dist / a), strength=strength, zone_id=z.zone_id,
                 created_index=z.created_index, bars_since_created=c - z.created_index, status="active",
+                formation_atr=float(z.tol / cfg.cluster_atr_mult) if cfg.cluster_atr_mult > 0 else None,
             ))
         out.sort(key=lambda q: q.midpoint)
         return out
