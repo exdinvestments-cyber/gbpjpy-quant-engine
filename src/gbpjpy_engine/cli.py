@@ -82,6 +82,27 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("--entry-scenario", help="synthetic entry scenario (engineering tests only)")
     t.add_argument("--trade-config", help="YAML/JSON trade config override file")
 
+    v = sub.add_parser("validate", help="Phase 1H: real-data validation (research only; no trading)")
+    vs = v.add_subparsers(dest="vcmd", required=True)
+    vst = vs.add_parser("status", help="list real datasets or print REAL_DATA_REQUIRED with the import specification")
+    vst.add_argument("--store", default="data/research_store")
+    vi = vs.add_parser("import", help="copy a provider file into the immutable RAW layer with its provenance")
+    vi.add_argument("--store", default="data/research_store")
+    vi.add_argument("--file", required=True)
+    vi.add_argument("--timeframe", required=True)
+    vi.add_argument("--provider", required=True)
+    vi.add_argument("--source-tz", required=True, help="IANA timezone of the source timestamps (never guessed)")
+    vi.add_argument("--price-type", required=True, choices=["BID", "ASK", "MID", "UNKNOWN"])
+    vi.add_argument("--volume-type", default="UNKNOWN")
+    vi.add_argument("--spread", default="UNKNOWN", choices=["PER_BAR", "SAMPLED", "NONE", "UNKNOWN"])
+    vi.add_argument("--spread-unit", default="UNKNOWN", choices=["PIPS", "POINTS", "PRICE", "UNKNOWN"])
+    vi.add_argument("--format", default="CSV", choices=["CSV", "PARQUET", "TERMINAL_TAB_EXPORT"])
+    vi.add_argument("--retrieved-at", default=None)
+    vi.add_argument("--symbol", default="GBPJPY")
+    vr = vs.add_parser("run", help="run the frozen baseline ONCE on the first real H1 dataset")
+    vr.add_argument("--store", default="data/research_store")
+    vr.add_argument("--seed", type=int, default=20240101)
+
     args = p.parse_args(argv)
     logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
@@ -93,6 +114,8 @@ def main(argv: list[str] | None = None) -> int:
         generate_scenario(args.scenario, seed=args.seed).bars.to_csv(args.out, index=False)
         return 0
 
+    if args.cmd == "validate":
+        return _run_validate(args)
     if args.cmd == "h1":
         return _run_h1(args)
     if args.cmd == "entry":
@@ -197,6 +220,32 @@ def _run_trade(args) -> int:
                       "rejected_or_invalidated": len(res.rejected), "by_direction": res.direction_stats()}, indent=2))
     for rec in res.constructions[-2:]:
         print("\n" + explain_trade(res, rec.trade_proposal_id))
+    return 0
+
+
+
+def _run_validate(args) -> int:
+    from .validation import DataStore, DatasetProvenance, ImportSpec, first_real_data_run, real_data_required
+
+    store = DataStore(args.store)
+    if args.vcmd == "status":
+        ds = store.list_datasets(real_only=True)
+        print(json.dumps([d.to_dict() for d in ds] if ds else real_data_required(args.store), indent=2, default=str))
+        return 0
+    if args.vcmd == "import":
+        prov = DatasetProvenance(provider=args.provider, symbol=args.symbol, timeframe=args.timeframe,
+                                 source_timezone=args.source_tz, price_type=args.price_type, volume_type=args.volume_type,
+                                 spread_availability=args.spread, spread_unit=args.spread_unit, retrieved_at=args.retrieved_at)
+        got = store.import_raw(args.file, ImportSpec(prov, fmt=args.format))
+        df, log = store.normalise(got.dataset_id)
+        print(json.dumps({"dataset_id": got.dataset_id, "rows": len(df), "transform": log}, indent=2, default=str))
+        return 0
+    res = first_real_data_run(args.store, seed=args.seed)
+    if res.get("status") == "REAL_DATA_REQUIRED":
+        print(json.dumps(res, indent=2, default=str))
+        return 2
+    print(json.dumps({"written": res["written"], "performance": res["performance"],
+                      "validation_status": res["result"].validation_status}, indent=2, default=str))
     return 0
 
 

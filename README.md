@@ -2,7 +2,15 @@
 
 Research-grade algorithmic analysis system dedicated to **GBPJPY**.
 
-**Current phase: 1G — Execution Safety**: risk-approved trades become immutable ORDER INTENTS that pass a final
+**Current phase: 1H — Real-Data Validation & Research Infrastructure**: provenance-tracked RAW → NORMALISED → DERIVED
+data layers, a pre-backtest data-quality gate, versioned H1→H4 resampling, explicit bid/ask and cost models (spread,
+commission, slippage, swap), a conservative historical execution simulator, point-in-time replay through Phases 1A–1G,
+chronological splits with a locked final holdout, walk-forward, an append-only experiment manifest, Monte Carlo and
+stress research, robustness/overfitting diagnostics and promotion gates. Its purpose is to try to falsify the strategy.
+**Status: REAL_DATA_REQUIRED**: no real GBPJPY data is present, so no validation result exists (see
+[`docs/PHASE_1H_REAL_DATA_VALIDATION.md`](docs/PHASE_1H_REAL_DATA_VALIDATION.md) for the import specification).
+
+Phase 1G — Execution Safety: risk-approved trades become immutable ORDER INTENTS that pass a final
 submission gate (fresh bid/ask quote, spread, directional price deterioration, risk recheck with round-down volume,
 R and room recheck, validity window) and a platform-neutral, idempotent, write-ahead order lifecycle with
 reconciliation, protection verification, circuit breaker and restart recovery. There is **no platform connection and
@@ -54,6 +62,12 @@ python -m gbpjpy_engine entry --h1-csv gbpjpy_h1.csv --tz UTC --out output/entry
 
 # Phase 1E: trade construction (proposed trades - not orders)
 python -m gbpjpy_engine trade --h1-csv gbpjpy_h1.csv --tz UTC
+
+# Phase 1H: real-data validation (research only)
+python -m gbpjpy_engine validate status          # REAL_DATA_REQUIRED + import specification, or the imported datasets
+python -m gbpjpy_engine validate import --file GBPJPY_H1.csv --timeframe H1 --provider broker_export \
+    --source-tz Europe/Athens --price-type BID --spread PER_BAR --spread-unit POINTS --format TERMINAL_TAB_EXPORT
+python -m gbpjpy_engine validate run             # frozen baseline, run once
 ```
 
 ```python
@@ -92,6 +106,8 @@ server time to canonical UTC bars before data reaches the engine; no adapter exi
   costs, anti-R:R-manipulation, account separation (Phase 1E).
 * [`docs/PHASE_1F_ACCOUNT_RISK.md`](docs/PHASE_1F_ACCOUNT_RISK.md) — account risk, pip value, sizing, limits,
   persistence, firewalls (Phase 1F).
+* [`docs/PHASE_1H_REAL_DATA_VALIDATION.md`](docs/PHASE_1H_REAL_DATA_VALIDATION.md) — real-data validation, provenance,
+  costs, simulator, holdout lock, walk-forward, Monte Carlo, promotion gates, import specification (Phase 1H).
 * [`docs/PHASE_1G_EXECUTION_SAFETY.md`](docs/PHASE_1G_EXECUTION_SAFETY.md) — order intents, final submission gate,
   lifecycle, idempotency, reconciliation, protection, MT4/MT5 adapter contracts (Phase 1G).
 * [`docs/BROKER_NEUTRAL_INTERFACES.md`](docs/BROKER_NEUTRAL_INTERFACES.md) — future MT4/MT5 adapter contracts
@@ -100,7 +116,7 @@ server time to canonical UTC bars before data reaches the engine; no adapter exi
 ## Layout
 
 ```
-src/gbpjpy_engine/   engine package (data, features, classification, context [Phase 1B], h1 [Phase 1C], entry [Phase 1D], trade [Phase 1E], risk [Phase 1F], execution [Phase 1G], engine, snapshot, logging, research, cli)
+src/gbpjpy_engine/   engine package (data, features, classification, context [Phase 1B], h1 [Phase 1C], entry [Phase 1D], trade [Phase 1E], risk [Phase 1F], execution [Phase 1G], validation [Phase 1H], engine, snapshot, logging, research, cli)
 config/              documented baseline configuration (h4_default.yaml, h1_default.yaml, entry_default.yaml, trade_default.yaml, risk_default.yaml, execution_default.yaml)
 docs/                design and methodology documentation
 tests/               unit, anti-look-ahead and synthetic-scenario tests

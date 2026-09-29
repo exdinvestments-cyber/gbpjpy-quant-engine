@@ -138,6 +138,13 @@ returning a `PortResponse` (ACK / REJECTED with a canonical reason / TIMEOUT / D
 retry internally and never change prices, levels or volumes. The older "Order request / Order result / Position
 state" notes below are superseded by the canonical objects in `execution.model`.
 
+## Historical data provider (Phase 1H)
+
+Research data enters through `validation.provenance.HistoricalDataProvider` (CSV, Parquet or a platform tab-separated
+history export) with a mandatory `DatasetProvenance`: provider, symbol, timeframe, SOURCE timezone (the broker server
+timezone for platform exports - never guessed), price type BID / ASK / MID / UNKNOWN, volume type, spread availability
+and unit, retrieval time and a content hash. See `docs/PHASE_1H_REAL_DATA_VALIDATION.md` section 12.
+
 ## Symbol specification
 
 Canonical form consumed by the core: `trade.symbol.SymbolSpec(symbol, digits, point, pip_size, source)`, supplied by

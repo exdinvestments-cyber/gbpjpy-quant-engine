@@ -11,3 +11,4 @@ data/raw/
 *.parquet
 *.jsonl
 .env
+data/research_store/
